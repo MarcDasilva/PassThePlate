@@ -166,6 +166,57 @@ export default function MapComponent({
         icon: donationIcon,
       }).addTo(mapRef.current!);
 
+      // Calculate expiry date display if available
+      let expiryDateHtml = "";
+      if (donation.expiry_date) {
+        const expiryDate = new Date(donation.expiry_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        expiryDate.setHours(0, 0, 0, 0);
+        const daysUntilExpiry = Math.ceil(
+          (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const formattedDate = expiryDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+        let statusText = "";
+        let statusColor = "#666";
+        if (daysUntilExpiry < 0) {
+          statusText = ` (Expired ${Math.abs(daysUntilExpiry)} day${
+            Math.abs(daysUntilExpiry) !== 1 ? "s" : ""
+          } ago)`;
+          statusColor = "#dc2626";
+        } else if (daysUntilExpiry === 0) {
+          statusText = " (Expires today)";
+          statusColor = "#dc2626";
+        } else if (daysUntilExpiry <= 3) {
+          statusText = ` (Expires in ${daysUntilExpiry} day${
+            daysUntilExpiry !== 1 ? "s" : ""
+          })`;
+          statusColor = "#f59e0b";
+        } else {
+          statusText = ` (Expires in ${daysUntilExpiry} days)`;
+        }
+        expiryDateHtml = `<div style="
+          background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
+          color: #15803d;
+          padding: 6px 10px;
+          border-radius: 6px;
+          margin: 8px 0 12px 0;
+          font-size: 11px;
+          font-weight: 500;
+          text-align: center;
+          letter-spacing: 0.3px;
+          opacity: 0.7;
+        ">
+          <strong>Expires:</strong> ${escapeHtml(formattedDate)}${escapeHtml(
+          statusText
+        )}
+        </div>`;
+      }
+
       // Create popup content with escaped HTML and view profile button
       const popupContent = document.createElement("div");
       popupContent.style.minWidth = "250px";
@@ -179,16 +230,17 @@ export default function MapComponent({
                   alt="${escapeHtml(donation.title)}" 
                   style="
                     width: 100%; 
-                    height: 200px; 
+                    height: 120px; 
                     object-fit: cover; 
                     border-radius: 4px; 
-                    margin-bottom: 12px;
+                    margin-bottom: 0;
                     border: 1px solid #ddd;
                   "
                   onerror="this.style.display='none'"
                 />`
               : ""
           }
+          ${expiryDateHtml}
           <h3 style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px;">${escapeHtml(
             donation.title
           )}</h3>
@@ -204,7 +256,7 @@ export default function MapComponent({
           }
           ${
             donation.address
-              ? `<p style="margin: 0 0 12px 0; font-size: 12px;"><strong>Address:</strong> ${escapeHtml(
+              ? `<p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Address:</strong> ${escapeHtml(
                   donation.address
                 )}</p>`
               : ""
@@ -238,10 +290,11 @@ export default function MapComponent({
       if (viewProfileBtn) {
         viewProfileBtn.addEventListener("click", (e) => {
           e.stopPropagation();
+          e.preventDefault();
+
+          // Open profile modal without closing the popup
           setSelectedUserId(donation.user_id);
           setIsProfileModalOpen(true);
-          // Close the popup when opening profile modal
-          marker.closePopup();
         });
       }
 
