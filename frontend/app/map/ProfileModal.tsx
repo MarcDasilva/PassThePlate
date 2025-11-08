@@ -97,6 +97,43 @@ export default function ProfileModal({
                 </div>
               )}
 
+              {/* Rating and Achievements Section */}
+              <div className="pt-4 border-t space-y-4">
+                {/* Rating */}
+                <div className="text-center">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                    Rating
+                  </h3>
+                  {profile.rating !== null && profile.rating !== undefined ? (
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-2xl font-bold text-[#367230]">
+                        {profile.rating.toFixed(1)}
+                      </span>
+                      <span className="text-gray-400">/ 5.0</span>
+                      <span className="text-yellow-400 text-xl">★</span>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm">No rating yet</p>
+                  )}
+                </div>
+
+                {/* Achievements */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider text-center">
+                    Achievements
+                  </h3>
+                  {profile.achievements ? (
+                    <div className="text-center">
+                      <p className="text-gray-600">{profile.achievements}</p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm text-center">
+                      No achievements yet
+                    </p>
+                  )}
+                </div>
+              </div>
+
               {/* Member Since */}
               {profile.created_at && (
                 <div className="text-sm text-gray-500 text-center pt-4 border-t">

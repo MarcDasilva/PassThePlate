@@ -7,6 +7,8 @@ export interface Profile {
   about_me: string;
   email: string;
   avatar_url?: string | null;
+  rating?: number | null;
+  achievements?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -50,7 +52,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, created_at, updated_at")
+    .select("id, name, about_me, avatar_url, rating, achievements, created_at, updated_at")
     .eq("id", userId)
     .single();
 
@@ -70,7 +72,7 @@ export async function getPublicProfile(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, created_at, updated_at")
+    .select("id, name, about_me, avatar_url, rating, achievements, created_at, updated_at")
     .eq("id", userId)
     .single();
 
@@ -90,7 +92,7 @@ export async function getProfiles(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, created_at, updated_at")
+    .select("id, name, about_me, avatar_url, rating, achievements, created_at, updated_at")
     .in("id", userIds);
 
   if (error || !data) {

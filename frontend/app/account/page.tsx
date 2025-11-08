@@ -475,6 +475,41 @@ export default function AccountPage() {
               <p className="text-lg text-black">{user.email}</p>
             </div>
 
+            {/* Rating and Achievements Section */}
+            <div className="pt-6 border-t border-black space-y-6">
+              {/* Rating */}
+              <div>
+                <label className="block text-sm uppercase tracking-widest mb-2 text-black">
+                  Rating
+                </label>
+                {profile.rating !== null && profile.rating !== undefined ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-[#367230]">
+                      {profile.rating.toFixed(1)}
+                    </span>
+                    <span className="text-gray-500">/ 5.0</span>
+                    <span className="text-yellow-400 text-xl">★</span>
+                  </div>
+                ) : (
+                  <p className="text-lg text-gray-500">No rating yet</p>
+                )}
+              </div>
+
+              {/* Achievements */}
+              <div>
+                <label className="block text-sm uppercase tracking-widest mb-2 text-black">
+                  Achievements
+                </label>
+                {profile.achievements ? (
+                  <p className="text-lg text-black whitespace-pre-wrap">
+                    {profile.achievements}
+                  </p>
+                ) : (
+                  <p className="text-lg text-gray-500">No achievements yet</p>
+                )}
+              </div>
+            </div>
+
             <div className="pt-6 border-t border-black">
               <button
                 onClick={handleLogout}
