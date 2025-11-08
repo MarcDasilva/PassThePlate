@@ -484,6 +484,10 @@ export default function MapPage() {
   const [selectedPinCoordinates, setSelectedPinCoordinates] = useState<
     [number, number] | null
   >(null);
+  const [showTooFarAwayModal, setShowTooFarAwayModal] = useState(false);
+  const [tooFarAwayDistance, setTooFarAwayDistance] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -711,6 +715,36 @@ export default function MapPage() {
 
   const handleDonationPickedUp = async (donationId: string) => {
     if (!user) return;
+
+    // Check if user location is available
+    if (!userLocation) {
+      setTooFarAwayDistance(null);
+      setShowTooFarAwayModal(true);
+      return;
+    }
+
+    // Find the donation to get its coordinates
+    const donation = donations.find((d) => d.id === donationId);
+    if (!donation) {
+      setTooFarAwayDistance(null);
+      setShowTooFarAwayModal(true);
+      return;
+    }
+
+    // Calculate distance between user location and donation location
+    const distance = calculateDistance(
+      userLocation[0],
+      userLocation[1],
+      donation.latitude,
+      donation.longitude
+    );
+
+    // Check if donation is within 5km
+    if (distance > 5) {
+      setTooFarAwayDistance(distance);
+      setShowTooFarAwayModal(true);
+      return;
+    }
 
     // Update donation status to "claimed" and set claimed_by to current user
     const { error } = await updateDonationStatus(
@@ -1925,6 +1959,42 @@ export default function MapPage() {
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Too Far Away Modal */}
+      {showTooFarAwayModal && (
+        <div
+          className="fixed inset-0 z-[1002] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={() => setShowTooFarAwayModal(false)}
+        >
+          <div
+            className="bg-white max-w-md w-full mx-4 border border-black transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-black bg-red-900 bg-opacity-10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold tracking-tighter text-black">
+                  Oops... You're too far away
+                </h3>
+                <button
+                  onClick={() => setShowTooFarAwayModal(false)}
+                  className="w-6 h-6 rounded-full border border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors"
+                >
+                  <span className="text-sm font-bold">×</span>
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700">
+                {tooFarAwayDistance
+                  ? `This donation is ${tooFarAwayDistance.toFixed(
+                      1
+                    )}km away. You can only pick up donations within 5km of your location.`
+                  : "Location unavailable. Please enable location services to pick up donations."}
+              </p>
             </div>
           </div>
         </div>
