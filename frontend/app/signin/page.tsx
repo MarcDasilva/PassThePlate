@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Navbar } from "@/app/components/navbar";
 import { ROUTES } from "@/app/lib/routes";
+import { hasProfile } from "@/app/lib/supabase/profile";
+import { createClient } from "@/app/lib/supabase/client";
 
 export default function SignInPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -22,11 +24,15 @@ export default function SignInPage() {
   } = useAuth();
   const router = useRouter();
 
-  // Redirect to map if user is already authenticated
+  // Redirect if user is already authenticated
   useEffect(() => {
-    if (!authLoading && user) {
-      window.location.href = ROUTES.MAP;
-    }
+    const checkAndRedirect = async () => {
+      if (!authLoading && user) {
+        const profileExists = await hasProfile(user.id);
+        window.location.href = profileExists ? ROUTES.MAP : ROUTES.ACCOUNT;
+      }
+    };
+    checkAndRedirect();
   }, [user, authLoading]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -51,8 +57,19 @@ export default function SignInPage() {
         setLoading(false);
         setError(error.message);
       } else {
-        // Redirect immediately after successful signup
-        window.location.href = ROUTES.MAP;
+        // Wait a moment for session to be established, then check profile
+        setTimeout(async () => {
+          const supabase = createClient();
+          const {
+            data: { user: currentUser },
+          } = await supabase.auth.getUser();
+          if (currentUser) {
+            const profileExists = await hasProfile(currentUser.id);
+            window.location.href = profileExists ? ROUTES.MAP : ROUTES.ACCOUNT;
+          } else {
+            window.location.href = ROUTES.MAP;
+          }
+        }, 500);
       }
     } else {
       setLoading(true);
@@ -62,8 +79,19 @@ export default function SignInPage() {
         setLoading(false);
         setError(error.message);
       } else {
-        // Redirect immediately after successful signin
-        window.location.href = ROUTES.MAP;
+        // Wait a moment for session to be established, then check profile
+        setTimeout(async () => {
+          const supabase = createClient();
+          const {
+            data: { user: currentUser },
+          } = await supabase.auth.getUser();
+          if (currentUser) {
+            const profileExists = await hasProfile(currentUser.id);
+            window.location.href = profileExists ? ROUTES.MAP : ROUTES.ACCOUNT;
+          } else {
+            window.location.href = ROUTES.MAP;
+          }
+        }, 500);
       }
     }
   };

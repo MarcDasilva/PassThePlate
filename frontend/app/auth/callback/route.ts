@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
           .eq("id", user.id)
           .single();
 
-        // If no profile exists and no explicit next parameter, redirect to profile setup
+        // If no profile exists and no explicit next parameter, redirect to account page
         if (!profile && !next) {
-          return NextResponse.redirect(`${origin}${ROUTES.PROFILE_SETUP}`);
+          return NextResponse.redirect(`${origin}${ROUTES.ACCOUNT}`);
         }
       }
 

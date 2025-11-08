@@ -25,6 +25,12 @@ export default function AccountPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Setup mode state for first-time users
+  const [setupMode, setSetupMode] = useState(false);
+  const [setupName, setSetupName] = useState("");
+  const [setupAboutMe, setSetupAboutMe] = useState("");
+  const [setupAvatarUrl, setSetupAvatarUrl] = useState<string | null>(null);
+  const [setupLoading, setSetupLoading] = useState(false);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -37,7 +43,9 @@ export default function AccountPage() {
         // Check if user has completed profile
         const profileExists = await hasProfile(user.id);
         if (!profileExists) {
-          router.push(ROUTES.PROFILE_SETUP);
+          // Show setup form instead of redirecting
+          setSetupMode(true);
+          setCheckingProfile(false);
           return;
         }
 
@@ -47,6 +55,7 @@ export default function AccountPage() {
         if (profileData) {
           setEditedAbout(profileData.about_me);
         }
+        setSetupMode(false);
         setCheckingProfile(false);
       }
     };
@@ -195,6 +204,88 @@ export default function AccountPage() {
     }
   };
 
+  const handleSetupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!setupName.trim()) {
+      setError("Name is required");
+      return;
+    }
+
+    if (!setupAboutMe.trim()) {
+      setError("About me is required");
+      return;
+    }
+
+    if (!user) {
+      setError("You must be logged in to complete profile setup");
+      return;
+    }
+
+    setSetupLoading(true);
+
+    try {
+      const { error: insertError } = await upsertProfile(user.id, {
+        name: setupName.trim(),
+        about_me: setupAboutMe.trim(),
+        email: user.email || "",
+        avatar_url: setupAvatarUrl,
+      });
+
+      if (insertError) {
+        setError(insertError.message || "Failed to save profile");
+        setSetupLoading(false);
+        return;
+      }
+
+      // Load the newly created profile
+      const profileData = await getProfile(user.id);
+      setProfile(profileData);
+      if (profileData) {
+        setEditedAbout(profileData.about_me);
+      }
+      setSetupMode(false);
+      setSetupLoading(false);
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setSetupLoading(false);
+    }
+  };
+
+  const handleSetupAvatarUpload = async (file: File) => {
+    if (!user) return;
+
+    setUploadingAvatar(true);
+    setError(null);
+
+    try {
+      const { data, error: uploadError } = await uploadProfilePicture(
+        user.id,
+        file
+      );
+
+      if (uploadError || !data) {
+        setError(uploadError?.message || "Failed to upload image");
+        setUploadingAvatar(false);
+        return;
+      }
+
+      setSetupAvatarUrl(data.path);
+      setUploadingAvatar(false);
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleSetupAvatarRemove = async () => {
+    if (setupAvatarUrl) {
+      await deleteProfilePicture(setupAvatarUrl);
+    }
+    setSetupAvatarUrl(null);
+  };
+
   const handleLogout = async () => {
     await signOut();
     router.push(ROUTES.SIGN_IN);
@@ -208,7 +299,93 @@ export default function AccountPage() {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
+    return null;
+  }
+
+  // Show setup form for first-time users
+  if (setupMode) {
+    return (
+      <main className="min-h-screen bg-[#367230]">
+        <Navbar />
+        <div className="pt-32 pb-20 px-4 md:px-8 container mx-auto">
+          <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+            <h1 className="text-4xl font-bold tracking-tighter mb-6 text-black text-center">
+              Complete Your Profile
+            </h1>
+            <p className="text-center text-black/70 mb-8">
+              Please provide some information to get started
+            </p>
+
+            {error && (
+              <div className="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSetupSubmit} className="space-y-6">
+              <div className="flex justify-center">
+                <ProfilePictureUpload
+                  currentAvatarUrl={setupAvatarUrl}
+                  onUpload={handleSetupAvatarUpload}
+                  onRemove={
+                    setupAvatarUrl ? handleSetupAvatarRemove : undefined
+                  }
+                  uploading={uploadingAvatar}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="setupName"
+                  className="block text-sm uppercase tracking-widest mb-2 text-black"
+                >
+                  Name
+                </label>
+                <input
+                  id="setupName"
+                  type="text"
+                  value={setupName}
+                  onChange={(e) => setSetupName(e.target.value)}
+                  required
+                  className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
+                  placeholder="Enter your name"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="setupAboutMe"
+                  className="block text-sm uppercase tracking-widest mb-2 text-black"
+                >
+                  About Me
+                </label>
+                <textarea
+                  id="setupAboutMe"
+                  value={setupAboutMe}
+                  onChange={(e) => setSetupAboutMe(e.target.value)}
+                  required
+                  rows={4}
+                  className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
+                  placeholder="Tell us about yourself"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={setupLoading}
+                className="w-full px-8 py-3 bg-black text-white text-sm uppercase tracking-widest hover:bg-[#367230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {setupLoading ? "Saving..." : "Complete Setup"}
+              </button>
+            </form>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!profile) {
     return null;
   }
 
