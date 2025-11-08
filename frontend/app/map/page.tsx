@@ -22,8 +22,10 @@ import {
   deleteRequest,
   Request,
 } from "@/app/lib/supabase/requests";
+import { createMonetaryDonation } from "@/app/lib/supabase/monetary-donations";
 import PostDonationModal from "./PostDonationModal";
 import RequestDonationModal from "./RequestDonationModal";
+import DonationSliderModal from "./DonationSliderModal";
 import "leaflet/dist/leaflet.css";
 
 // Dynamically import the map component to avoid SSR issues
@@ -121,7 +123,11 @@ function groupRequestsByLocation(requests: Request[]): Array<{
 // World Globe Component
 interface WorldGlobeProps {
   requests: Request[];
-  onPinClick?: (count: number, requests: Request[]) => void;
+  onPinClick?: (
+    count: number,
+    requests: Request[],
+    coordinates: [number, number]
+  ) => void;
 }
 
 function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
@@ -267,7 +273,7 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
               e.preventDefault();
               const data = (e.currentTarget as any).__data;
               if (onPinClick && data) {
-                onPinClick(data.count, data.requests);
+                onPinClick(data.count, data.requests, [data.lat, data.lng]);
               }
             };
 
@@ -289,7 +295,7 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
                 e.preventDefault();
                 const data = (e.currentTarget as any).__data;
                 if (onPinClick && data) {
-                  onPinClick(data.count, data.requests);
+                  onPinClick(data.count, data.requests, [data.lat, data.lng]);
                 }
               },
               true
@@ -346,6 +352,10 @@ export default function MapPage() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [selectedPinCount, setSelectedPinCount] = useState<number>(0);
   const [selectedPinRequests, setSelectedPinRequests] = useState<Request[]>([]);
+  const [showDonationSlider, setShowDonationSlider] = useState(false);
+  const [selectedPinCoordinates, setSelectedPinCoordinates] = useState<
+    [number, number] | null
+  >(null);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -730,9 +740,10 @@ export default function MapPage() {
         <div className="absolute inset-0 w-full h-full z-0 bg-black">
           <WorldGlobe
             requests={requests}
-            onPinClick={(count, pinRequests) => {
+            onPinClick={(count, pinRequests, coordinates) => {
               setSelectedPinCount(count);
               setSelectedPinRequests(pinRequests);
+              setSelectedPinCoordinates(coordinates);
               setShowPinModal(true);
             }}
           />
@@ -1471,16 +1482,16 @@ export default function MapPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowPinModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                  className="flex-1 text-sm uppercase tracking-widest border border-black px-5 py-2 transition-colors hover:bg-black hover:text-white"
                 >
                   Close
                 </button>
                 <button
                   onClick={() => {
                     setShowPinModal(false);
-                    setIsRequestDonationModalOpen(true);
+                    setShowDonationSlider(true);
                   }}
-                  className="flex-1 px-4 py-2 bg-red-900 text-white rounded-lg hover:bg-red-800 transition-colors font-medium text-sm"
+                  className="flex-1 text-sm uppercase tracking-widest border border-red-900 px-5 py-2 transition-colors bg-red-900 bg-opacity-10 hover:bg-red-900 hover:text-white text-red-900"
                 >
                   Donate
                 </button>
@@ -1488,6 +1499,29 @@ export default function MapPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Donation Slider Modal */}
+      {showDonationSlider && user && userLocation && selectedPinCoordinates && (
+        <DonationSliderModal
+          isOpen={showDonationSlider}
+          onClose={() => setShowDonationSlider(false)}
+          onSend={async (amount: number) => {
+            const { error } = await createMonetaryDonation(
+              user.id,
+              userLocation[0],
+              userLocation[1],
+              selectedPinCoordinates[0],
+              selectedPinCoordinates[1],
+              amount
+            );
+            if (error) {
+              throw error;
+            }
+          }}
+          fromCoordinates={userLocation}
+          toCoordinates={selectedPinCoordinates}
+        />
       )}
 
       {/* Tip Coming Soon Modal */}
