@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
             currency: "usd",
             product_data: {
               name: "Monetary Donation",
-              description: `Donation from (${fromLatitude}, ${fromLongitude}) to (${toLatitude}, ${toLongitude})`,
+              description:
+                "Supporting community donations through PassThePlate",
             },
             unit_amount: Math.round(amount * 100), // Convert to cents
           },
