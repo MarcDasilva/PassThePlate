@@ -319,9 +319,39 @@ interface ConnectionMapProps {
   donations: MonetaryDonation[];
 }
 
+// Helper function to reverse geocode coordinates to get location name
+async function getLocationName(lat: number, lng: number): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+    );
+    const data = await response.json();
+
+    const parts = [];
+    if (data.city) parts.push(data.city);
+    if (data.principalSubdivision) parts.push(data.principalSubdivision);
+    if (data.countryName) parts.push(data.countryName);
+
+    return parts.length > 0
+      ? parts.join(", ")
+      : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  } catch (error) {
+    console.error("Error reverse geocoding:", error);
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+}
+
 function ConnectionMap({ donations }: ConnectionMapProps) {
   const globeRef = useRef<any>(null);
   const [dots, setDots] = useState<Array<{ x: number; y: number }>>([]);
+  const [locationNames, setLocationNames] = useState<
+    Map<string, { from: string; to: string }>
+  >(new Map());
+  const [shuffledDonations, setShuffledDonations] = useState<
+    MonetaryDonation[]
+  >([]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const horizontalScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Generate grey dots symmetrically across the background
@@ -352,6 +382,166 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
       controls.zoomSpeed = 1.2;
     }
   }, []);
+
+  // Shuffle donations randomly
+  useEffect(() => {
+    if (donations.length > 0) {
+      const shuffled = [...donations].sort(() => Math.random() - 0.5);
+      setShuffledDonations(shuffled);
+    }
+  }, [donations]);
+
+  // Fetch location names for all donations
+  useEffect(() => {
+    const fetchLocationNames = async () => {
+      const newLocationNames = new Map<string, { from: string; to: string }>();
+
+      for (const donation of shuffledDonations.length > 0
+        ? shuffledDonations
+        : donations) {
+        const [fromName, toName] = await Promise.all([
+          getLocationName(donation.from_latitude, donation.from_longitude),
+          getLocationName(donation.to_latitude, donation.to_longitude),
+        ]);
+
+        newLocationNames.set(donation.id, { from: fromName, to: toName });
+      }
+
+      setLocationNames(newLocationNames);
+    };
+
+    if (shuffledDonations.length > 0 || donations.length > 0) {
+      fetchLocationNames();
+    }
+  }, [donations, shuffledDonations]);
+
+  // Auto-scroll for vertical list (large screens)
+  useEffect(() => {
+    if (
+      !scrollContainerRef.current ||
+      (shuffledDonations.length === 0 && donations.length === 0)
+    )
+      return;
+
+    const container = scrollContainerRef.current;
+    let scrollPosition = 0;
+    const scrollSpeed = 0.25; // pixels per frame
+    let firstSetHeight = 0;
+    let animationFrameId: number;
+    let isInitialized = false;
+
+    // Calculate height of first set of items (before duplicates)
+    const calculateFirstSetHeight = () => {
+      const content = container.querySelector("div.space-y-3");
+      if (content) {
+        const children = Array.from(content.children);
+        const halfPoint = Math.ceil(children.length / 2);
+        firstSetHeight = 0;
+        for (let i = 0; i < halfPoint; i++) {
+          const child = children[i] as HTMLElement;
+          firstSetHeight += child.offsetHeight + 12; // 12px for gap (space-y-3)
+        }
+        return firstSetHeight > 0;
+      }
+      return false;
+    };
+
+    // Wait for content to render and location names to load
+    const initScroll = () => {
+      if (calculateFirstSetHeight()) {
+        isInitialized = true;
+        const scroll = () => {
+          scrollPosition += scrollSpeed;
+
+          // Reset when we've scrolled through the first set (seamless loop)
+          if (scrollPosition >= firstSetHeight) {
+            scrollPosition = scrollPosition - firstSetHeight;
+          }
+
+          container.scrollTop = scrollPosition;
+          animationFrameId = requestAnimationFrame(scroll);
+        };
+
+        animationFrameId = requestAnimationFrame(scroll);
+      } else {
+        // Retry if not ready
+        setTimeout(initScroll, 100);
+      }
+    };
+
+    // Wait a bit for DOM to be ready
+    setTimeout(initScroll, 300);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [shuffledDonations, donations, locationNames]);
+
+  // Auto-scroll for horizontal list (small screens)
+  useEffect(() => {
+    if (
+      !horizontalScrollRef.current ||
+      (shuffledDonations.length === 0 && donations.length === 0)
+    )
+      return;
+
+    const container = horizontalScrollRef.current;
+    let scrollPosition = 0;
+    const scrollSpeed = 0.25; // pixels per frame
+    let firstSetWidth = 0;
+    let animationFrameId: number;
+    let isInitialized = false;
+
+    // Calculate width of first set of items (before duplicates)
+    const calculateFirstSetWidth = () => {
+      const content = container.querySelector("div.flex.gap-3");
+      if (content) {
+        const children = Array.from(content.children);
+        const halfPoint = Math.ceil(children.length / 2);
+        firstSetWidth = 0;
+        for (let i = 0; i < halfPoint; i++) {
+          const child = children[i] as HTMLElement;
+          firstSetWidth += child.offsetWidth + 12; // 12px for gap (gap-3)
+        }
+        return firstSetWidth > 0;
+      }
+      return false;
+    };
+
+    // Wait for content to render and location names to load
+    const initScroll = () => {
+      if (calculateFirstSetWidth()) {
+        isInitialized = true;
+        const scroll = () => {
+          scrollPosition += scrollSpeed;
+
+          // Reset when we've scrolled through the first set (seamless loop)
+          if (scrollPosition >= firstSetWidth) {
+            scrollPosition = scrollPosition - firstSetWidth;
+          }
+
+          container.scrollLeft = scrollPosition;
+          animationFrameId = requestAnimationFrame(scroll);
+        };
+
+        animationFrameId = requestAnimationFrame(scroll);
+      } else {
+        // Retry if not ready
+        setTimeout(initScroll, 100);
+      }
+    };
+
+    // Wait a bit for DOM to be ready
+    setTimeout(initScroll, 300);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [shuffledDonations, donations, locationNames]);
 
   // Generate random color function
   const getRandomColor = (seed: number) => {
@@ -429,6 +619,145 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
           arcCurveResolution={64}
         />
       </div>
+
+      {/* Donations List - Right side on large screens, bottom on small screens */}
+      {(shuffledDonations.length > 0 || donations.length > 0) && (
+        <>
+          {/* Large screens - Right side, vertical auto-scroll */}
+          <div className="hidden lg:block absolute top-0 right-0 h-full w-80 z-10 pointer-events-none">
+            <div
+              ref={scrollContainerRef}
+              className="h-full overflow-y-auto p-4 scrollbar-hide pointer-events-none"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              <div className="space-y-3">
+                {(shuffledDonations.length > 0
+                  ? shuffledDonations
+                  : donations
+                ).map((donation) => {
+                  const location = locationNames.get(donation.id);
+                  return (
+                    <div
+                      key={donation.id}
+                      className="bg-white border border-black p-3 text-black"
+                    >
+                      <div className="text-xs mb-1">
+                        <span className="font-semibold">From:</span>{" "}
+                        {location?.from ||
+                          `${donation.from_latitude.toFixed(
+                            4
+                          )}, ${donation.from_longitude.toFixed(4)}`}
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-semibold">To:</span>{" "}
+                        {location?.to ||
+                          `${donation.to_latitude.toFixed(
+                            4
+                          )}, ${donation.to_longitude.toFixed(4)}`}
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Duplicate items for seamless loop */}
+                {(shuffledDonations.length > 0
+                  ? shuffledDonations
+                  : donations
+                ).map((donation) => {
+                  const location = locationNames.get(donation.id);
+                  return (
+                    <div
+                      key={`duplicate-${donation.id}`}
+                      className="bg-white border border-black p-3 text-black"
+                    >
+                      <div className="text-xs mb-1">
+                        <span className="font-semibold">From:</span>{" "}
+                        {location?.from ||
+                          `${donation.from_latitude.toFixed(
+                            4
+                          )}, ${donation.from_longitude.toFixed(4)}`}
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-semibold">To:</span>{" "}
+                        {location?.to ||
+                          `${donation.to_latitude.toFixed(
+                            4
+                          )}, ${donation.to_longitude.toFixed(4)}`}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Small screens - Bottom, horizontal auto-scroll */}
+          <div className="lg:hidden absolute bottom-0 left-0 right-0 h-32 z-10 pointer-events-none">
+            <div
+              ref={horizontalScrollRef}
+              className="h-full overflow-x-auto p-4 scrollbar-hide pointer-events-none"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              <div className="flex gap-3">
+                {(shuffledDonations.length > 0
+                  ? shuffledDonations
+                  : donations
+                ).map((donation) => {
+                  const location = locationNames.get(donation.id);
+                  return (
+                    <div
+                      key={donation.id}
+                      className="flex-shrink-0 w-48 bg-white border border-black p-3 text-black"
+                    >
+                      <div className="text-xs mb-1">
+                        <span className="font-semibold">From:</span>{" "}
+                        {location?.from ||
+                          `${donation.from_latitude.toFixed(
+                            4
+                          )}, ${donation.from_longitude.toFixed(4)}`}
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-semibold">To:</span>{" "}
+                        {location?.to ||
+                          `${donation.to_latitude.toFixed(
+                            4
+                          )}, ${donation.to_longitude.toFixed(4)}`}
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Duplicate items for seamless loop */}
+                {(shuffledDonations.length > 0
+                  ? shuffledDonations
+                  : donations
+                ).map((donation) => {
+                  const location = locationNames.get(donation.id);
+                  return (
+                    <div
+                      key={`duplicate-${donation.id}`}
+                      className="flex-shrink-0 w-48 bg-white border border-black p-3 text-black"
+                    >
+                      <div className="text-xs mb-1">
+                        <span className="font-semibold">From:</span>{" "}
+                        {location?.from ||
+                          `${donation.from_latitude.toFixed(
+                            4
+                          )}, ${donation.from_longitude.toFixed(4)}`}
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-semibold">To:</span>{" "}
+                        {location?.to ||
+                          `${donation.to_latitude.toFixed(
+                            4
+                          )}, ${donation.to_longitude.toFixed(4)}`}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
