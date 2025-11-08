@@ -368,7 +368,7 @@ export default function MapPage() {
           >
             <div className="p-2 md:p-4 lg:p-6 space-y-2 md:space-y-3 lg:space-y-4">
               {/* Post a Donation Button */}
-              <div className="bg-gradient-to-br from-[#367230] to-[#244b20] rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 shadow-md hover:shadow-lg transition-shadow">
+              <div className="bg-[#367230] rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 shadow-md hover:shadow-lg transition-shadow">
                 <button
                   onClick={handlePostDonation}
                   className="w-full text-xs md:text-sm font-semibold uppercase tracking-wider text-white py-1.5 md:py-2 lg:py-3 px-2 md:px-3 lg:px-4 rounded transition-all hover:opacity-90 active:scale-95"
