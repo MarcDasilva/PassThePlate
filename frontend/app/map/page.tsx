@@ -55,6 +55,7 @@ export default function MapPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [donationToDelete, setDonationToDelete] = useState<string | null>(null);
   const [isControlsMinimized, setIsControlsMinimized] = useState(false);
+  const [isRequestMenuMinimized, setIsRequestMenuMinimized] = useState(true);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -473,6 +474,175 @@ export default function MapPage() {
                     </p>
                   </div>
                   <div className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-blue-500 rounded-md md:rounded-lg flex items-center justify-center opacity-50">
+                    <svg
+                      className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Request a Donation Menu - positioned below Post a Donation menu */}
+        <div className="bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 w-40 md:w-52 lg:w-64 overflow-hidden transition-all duration-300 mt-2">
+          {/* Caret/Arrow button at top */}
+          <button
+            onClick={() => setIsRequestMenuMinimized(!isRequestMenuMinimized)}
+            className="w-full py-2 px-3 bg-red-900 bg-opacity-10 hover:bg-opacity-20 transition-colors flex items-center justify-center border-b border-gray-200"
+          >
+            <svg
+              className={`w-4 h-4 text-red-900 transition-transform duration-300 ${
+                isRequestMenuMinimized ? "rotate-180" : "rotate-0"
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          {/* Collapsible content */}
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isRequestMenuMinimized
+                ? "max-h-0 opacity-0"
+                : "max-h-[1000px] opacity-100"
+            }`}
+          >
+            <div className="p-2 md:p-4 lg:p-6 space-y-2 md:space-y-3 lg:space-y-4">
+              {/* Request a Donation Button */}
+              <div className="bg-gradient-to-br from-red-900 to-red-800 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 shadow-md hover:shadow-lg transition-shadow">
+                <button
+                  onClick={() => {
+                    // TODO: Add request donation handler
+                    console.log("Request a Donation clicked");
+                  }}
+                  className="w-full text-xs md:text-sm font-semibold uppercase tracking-wider text-white py-1.5 md:py-2 lg:py-3 px-2 md:px-3 lg:px-4 rounded transition-all hover:opacity-90 active:scale-95"
+                >
+                  Request a Donation
+                </button>
+              </div>
+
+              {/* Filter Button */}
+              <button
+                onClick={handleFilter}
+                className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+              >
+                Filter
+              </button>
+
+              {/* My Postings Button */}
+              <button
+                onClick={handleMyPostings}
+                className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+              >
+                My Postings ({userDonations.length})
+              </button>
+
+              {/* Toggle Switch */}
+              <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <span className="text-xs md:text-sm font-medium text-gray-700">
+                    Toggle
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={toggleEnabled}
+                      onChange={(e) => setToggleEnabled(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div
+                      className={`relative w-9 h-5 md:w-10 md:h-5 lg:w-11 lg:h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                        toggleEnabled ? "bg-red-900" : "bg-gray-300"
+                      }`}
+                    >
+                      <div
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 md:w-4 md:h-4 lg:w-5 lg:h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                          toggleEnabled
+                            ? "translate-x-4 md:translate-x-5 lg:translate-x-5"
+                            : "translate-x-0"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Radius Selection Card */}
+              <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
+                <div className="mb-2 md:mb-3">
+                  <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 md:mb-2">
+                    Radius:{" "}
+                    {radius >= 1000
+                      ? `${(radius / 1000).toFixed(1)}km`
+                      : `${radius}m`}
+                  </label>
+                  <input
+                    type="range"
+                    min="100"
+                    max="2000"
+                    step="50"
+                    value={radius}
+                    onChange={(e) => setRadius(Number(e.target.value))}
+                    className="w-full h-1.5 md:h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #991b1b 0%, #991b1b ${
+                        ((radius - 100) / (2000 - 100)) * 100
+                      }%, #e5e7eb ${
+                        ((radius - 100) / (2000 - 100)) * 100
+                      }%, #e5e7eb 100%)`,
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-0.5 md:mt-1">
+                    <span>100m</span>
+                    <span>2km</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-gray-200">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5 md:mb-1">
+                      In Range
+                    </p>
+                    <p className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900">
+                      {userLocation
+                        ? donations.filter((donation) => {
+                            const distance = calculateDistance(
+                              userLocation[0],
+                              userLocation[1],
+                              donation.latitude,
+                              donation.longitude
+                            );
+                            // Convert distance from km to meters for comparison
+                            return distance * 1000 <= radius;
+                          }).length
+                        : 0}
+                    </p>
+                  </div>
+                  <div className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-red-900 rounded-md md:rounded-lg flex items-center justify-center opacity-50">
                     <svg
                       className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white"
                       fill="none"

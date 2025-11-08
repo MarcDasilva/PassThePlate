@@ -84,7 +84,6 @@ export default function MapComponent({
 
     // Add marker at the center location (user's location)
     const userMarker = L.marker(center).addTo(map);
-    userMarker.bindPopup("Your Location").openPopup();
     userMarkerRef.current = userMarker;
 
     // Add radius circle (radius is already in meters)
@@ -135,7 +134,6 @@ export default function MapComponent({
       } else if (mapRef.current) {
         // If marker doesn't exist yet, create it
         userMarkerRef.current = L.marker(center).addTo(mapRef.current);
-        userMarkerRef.current.bindPopup("Your Location");
       }
 
       // Update or create radius circle (radius is already in meters)
