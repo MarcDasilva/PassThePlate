@@ -42,16 +42,19 @@ const escapeHtml = (text: string): string => {
 interface MapComponentProps {
   center: [number, number];
   donations?: Donation[];
+  radius?: number;
 }
 
 export default function MapComponent({
   center,
   donations = [],
+  radius = 500,
 }: MapComponentProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const donationMarkersRef = useRef<L.Marker[]>([]);
+  const radiusCircleRef = useRef<L.Circle | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -80,6 +83,17 @@ export default function MapComponent({
     userMarker.bindPopup("Your Location").openPopup();
     userMarkerRef.current = userMarker;
 
+    // Add radius circle (radius is already in meters)
+    const radiusCircle = L.circle(center, {
+      radius: radius,
+      fillColor: "#3b82f6", // Light blue
+      fillOpacity: 0.2,
+      color: "#3b82f6",
+      weight: 2,
+      opacity: 0.5,
+    }).addTo(map);
+    radiusCircleRef.current = radiusCircle;
+
     mapRef.current = map;
 
     // Cleanup function
@@ -88,6 +102,11 @@ export default function MapComponent({
       if (userMarkerRef.current) {
         userMarkerRef.current.remove();
         userMarkerRef.current = null;
+      }
+      // Remove radius circle
+      if (radiusCircleRef.current) {
+        radiusCircleRef.current.remove();
+        radiusCircleRef.current = null;
       }
       // Remove donation markers
       donationMarkersRef.current.forEach((marker) => marker.remove());
@@ -98,9 +117,9 @@ export default function MapComponent({
         mapRef.current = null;
       }
     };
-  }, [center]);
+  }, [center, radius]);
 
-  // Update map center and user marker position when center prop changes
+  // Update map center, user marker position, and radius circle when center or radius changes
   useEffect(() => {
     if (mapRef.current && center) {
       // Use zoom level 16 when updating view
@@ -114,8 +133,24 @@ export default function MapComponent({
         userMarkerRef.current = L.marker(center).addTo(mapRef.current);
         userMarkerRef.current.bindPopup("Your Location");
       }
+
+      // Update or create radius circle (radius is already in meters)
+      if (radiusCircleRef.current) {
+        radiusCircleRef.current.setLatLng(center);
+        radiusCircleRef.current.setRadius(radius);
+      } else if (mapRef.current) {
+        // If circle doesn't exist yet, create it
+        radiusCircleRef.current = L.circle(center, {
+          radius: radius,
+          fillColor: "#3b82f6", // Light blue
+          fillOpacity: 0.2,
+          color: "#3b82f6",
+          weight: 2,
+          opacity: 0.5,
+        }).addTo(mapRef.current);
+      }
     }
-  }, [center]);
+  }, [center, radius]);
 
   // Update donation markers when donations change
   useEffect(() => {
@@ -219,8 +254,8 @@ export default function MapComponent({
     <>
       <div
         ref={mapContainerRef}
-        className="w-full h-full"
-        style={{ minHeight: "100%" }}
+        className="w-full h-full absolute inset-0"
+        style={{ minHeight: "100vh" }}
       />
       {selectedUserId && (
         <ProfileModal
