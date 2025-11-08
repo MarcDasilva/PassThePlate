@@ -3,7 +3,7 @@
 import React from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
@@ -41,6 +41,239 @@ const MapComponent = dynamic(() => import("./MapComponent"), {
   radius?: number;
   onDonationPickedUp?: (donationId: string) => void;
 }>;
+
+// Dynamically import Globe component to avoid SSR issues
+const Globe = dynamic(() => import("react-globe.gl"), {
+  ssr: false,
+});
+
+// Helper function to calculate distance between two coordinates in kilometers using Haversine formula
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Group requests by location (within 50km radius)
+function groupRequestsByLocation(requests: Request[]): Array<{
+  lat: number;
+  lng: number;
+  count: number;
+  requests: Request[];
+}> {
+  const groups: Array<{
+    lat: number;
+    lng: number;
+    count: number;
+    requests: Request[];
+  }> = [];
+  const processed = new Set<string>();
+
+  requests.forEach((request) => {
+    if (processed.has(request.id)) return;
+
+    // Find all requests within 50km of this request
+    const nearbyRequests = requests.filter((r) => {
+      const distance = calculateDistance(
+        request.latitude,
+        request.longitude,
+        r.latitude,
+        r.longitude
+      );
+      return distance <= 50; // 50km radius
+    });
+
+    // Mark all nearby requests as processed
+    nearbyRequests.forEach((r) => processed.add(r.id));
+
+    // Calculate center point (average of all nearby requests)
+    const avgLat =
+      nearbyRequests.reduce((sum, r) => sum + r.latitude, 0) /
+      nearbyRequests.length;
+    const avgLng =
+      nearbyRequests.reduce((sum, r) => sum + r.longitude, 0) /
+      nearbyRequests.length;
+
+    groups.push({
+      lat: avgLat,
+      lng: avgLng,
+      count: nearbyRequests.length,
+      requests: nearbyRequests,
+    });
+  });
+
+  return groups;
+}
+
+// World Globe Component
+interface WorldGlobeProps {
+  requests: Request[];
+  onPinClick?: (count: number, requests: Request[]) => void;
+}
+
+function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
+  const globeRef = useRef<any>(null);
+  const [dots, setDots] = useState<Array<{ x: number; y: number }>>([]);
+  const [pins, setPins] = useState<
+    Array<{
+      lat: number;
+      lng: number;
+      count: number;
+      requests: Request[];
+    }>
+  >([]);
+
+  useEffect(() => {
+    // Generate grey dots symmetrically across the background
+    const generatedDots: Array<{ x: number; y: number }> = [];
+    const numDotsX = 20; // Number of dots horizontally
+    const numDotsY = 20; // Number of dots vertically
+
+    for (let i = 0; i < numDotsX; i++) {
+      for (let j = 0; j < numDotsY; j++) {
+        // Calculate position as percentage
+        const x = (i / (numDotsX - 1)) * 100;
+        const y = (j / (numDotsY - 1)) * 100;
+        generatedDots.push({ x, y });
+      }
+    }
+
+    setDots(generatedDots);
+  }, []);
+
+  useEffect(() => {
+    // Group requests by location and create pins
+    if (requests.length > 0) {
+      const groupedRequests = groupRequestsByLocation(requests);
+      setPins(groupedRequests);
+    } else {
+      setPins([]);
+    }
+  }, [requests]);
+
+  useEffect(() => {
+    if (globeRef.current) {
+      const controls = globeRef.current.controls();
+      // Enable auto-rotate
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+      controls.enableZoom = true;
+      // Increase zoom capability - allow much closer zoom
+      controls.minDistance = 100;
+      controls.maxDistance = 2000;
+      // Make zoom more sensitive for better control
+      controls.zoomSpeed = 1.2;
+    }
+  }, []);
+
+  return (
+    <div className="relative w-full h-full bg-black">
+      {/* Grey dots background */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none">
+        {dots.map((dot, index) => (
+          <div
+            key={index}
+            className="absolute rounded-full bg-gray-500 opacity-30"
+            style={{
+              left: `${dot.x}%`,
+              top: `${dot.y}%`,
+              width: "4px",
+              height: "4px",
+              transform: "translate(-50%, -50%)",
+            }}
+          />
+        ))}
+      </div>
+      {/* Globe */}
+      <div className="relative w-full h-full">
+        <Globe
+          ref={globeRef}
+          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+          backgroundColor="rgba(0,0,0,0)"
+          showAtmosphere={false}
+          enablePointerInteraction={true}
+          htmlElementsData={pins}
+          htmlLat="lat"
+          htmlLng="lng"
+          htmlElement={(d: any) => {
+            const el = document.createElement("div");
+            el.style.width = "30px";
+            el.style.height = "40px";
+            el.style.cursor = "pointer";
+            el.style.position = "relative";
+            el.style.pointerEvents = "auto";
+            el.style.zIndex = "1000";
+            el.style.display = "flex";
+            el.style.alignItems = "center";
+            el.style.justifyContent = "center";
+            el.innerHTML = `
+              <svg width="30" height="40" viewBox="0 0 30 40" style="
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+                pointer-events: none;
+              ">
+                <path d="M15 0C6.716 0 0 6.716 0 15c0 8.284 15 25 15 25s15-16.716 15-25C30 6.716 23.284 0 15 0z" fill="#dc2626"/>
+                <circle cx="15" cy="15" r="6" fill="white"/>
+                <text x="15" y="19" text-anchor="middle" font-size="10" font-weight="bold" fill="#dc2626">${d.count}</text>
+              </svg>
+            `;
+
+            // Store the data in the element for access in the click handler
+            (el as any).__data = d;
+
+            // Use addEventListener with capture phase to ensure it fires
+            const clickHandler = (e: Event) => {
+              e.stopPropagation();
+              e.preventDefault();
+              const data = (e.currentTarget as any).__data;
+              if (onPinClick && data) {
+                onPinClick(data.count, data.requests);
+              }
+            };
+
+            // Try multiple event types to ensure clicks work
+            el.addEventListener("click", clickHandler, true);
+            el.addEventListener(
+              "mousedown",
+              (e) => {
+                e.stopPropagation();
+              },
+              true
+            );
+
+            // Also try touch events for mobile
+            el.addEventListener(
+              "touchend",
+              (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const data = (e.currentTarget as any).__data;
+                if (onPinClick && data) {
+                  onPinClick(data.count, data.requests);
+                }
+              },
+              true
+            );
+
+            return el;
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // Testing flag - set to true to use default location when geolocation is unavailable
 const USE_DEFAULT_LOCATION_FOR_TESTING = true;
@@ -82,6 +315,9 @@ export default function MapPage() {
   const [isWorldMapActive, setIsWorldMapActive] = useState(false);
   const [isControlsMinimized, setIsControlsMinimized] = useState(false);
   const [isRequestMenuMinimized, setIsRequestMenuMinimized] = useState(true);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [selectedPinCount, setSelectedPinCount] = useState<number>(0);
+  const [selectedPinRequests, setSelectedPinRequests] = useState<Request[]>([]);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -460,6 +696,20 @@ export default function MapPage() {
         }}
       />
       <Navbar />
+
+      {/* World Map Globe - shown when toggle is active */}
+      {isWorldMapActive && (
+        <div className="absolute inset-0 w-full h-full z-0 bg-black">
+          <WorldGlobe
+            requests={requests}
+            onPinClick={(count, pinRequests) => {
+              setSelectedPinCount(count);
+              setSelectedPinRequests(pinRequests);
+              setShowPinModal(true);
+            }}
+          />
+        </div>
+      )}
 
       {/* Full screen map */}
       {!isWorldMapActive && (
@@ -1111,6 +1361,102 @@ export default function MapPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pin Click Modal */}
+      {showPinModal && (
+        <div
+          className="fixed inset-0 z-[1001] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={() => setShowPinModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-gray-100 transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200 bg-red-900 bg-opacity-10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold tracking-tighter text-black">
+                  Requests in Area ({selectedPinCount})
+                </h3>
+                <button
+                  onClick={() => setShowPinModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(85vh-150px)] p-6">
+              {selectedPinRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600 font-medium mb-2">
+                    No requests found
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedPinRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="bg-red-900 bg-opacity-5 rounded-lg p-4 border border-red-900 border-opacity-20 hover:border-opacity-30 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="font-semibold text-black text-sm md:text-base truncate">
+                          {request.title}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                            request.status === "open"
+                              ? "bg-red-900 bg-opacity-20 text-red-900"
+                              : request.status === "fulfilled"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {request.status}
+                        </span>
+                      </div>
+                      <p className="text-xs md:text-sm text-gray-700 line-clamp-2 mb-2">
+                        {request.description}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
+                        {request.address && (
+                          <span className="bg-red-900 bg-opacity-10 px-2 py-1 rounded border border-red-900 border-opacity-20 text-black">
+                            📍 {request.address}
+                          </span>
+                        )}
+                        {request.phone_number && (
+                          <span className="bg-red-900 bg-opacity-10 px-2 py-1 rounded border border-red-900 border-opacity-20 text-black">
+                            📞 {request.phone_number}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-gray-200">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPinModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPinModal(false);
+                    setIsRequestDonationModalOpen(true);
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-900 text-white rounded-lg hover:bg-red-800 transition-colors font-medium text-sm"
+                >
+                  Donate
+                </button>
+              </div>
             </div>
           </div>
         </div>
