@@ -13,7 +13,7 @@ const navItems = [
 ];
 
 export function Navbar() {
-  const { user, loading, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white border-b border-black text-black">
@@ -32,11 +32,7 @@ export function Navbar() {
               {label}
             </Link>
           ))}
-          {loading ? (
-            <span className="text-sm uppercase tracking-widest">
-              Loading...
-            </span>
-          ) : user ? (
+          {user ? (
             <>
               <span className="text-sm uppercase tracking-widest">
                 {user.email}
