@@ -18,10 +18,11 @@ export function Navbar() {
       <div className="container mx-auto px-1 md:px-2 py-4 flex justify-between items-center">
         <Link href="/">
           <Image
-            src="/LargeLogo.png"
+            src="/LargeLogo.png?v=2"
             alt="Helvetica Logo"
             width={120}
             height={80}
+            unoptimized
           />
         </Link>
         <div className="flex items-center space-x-3">

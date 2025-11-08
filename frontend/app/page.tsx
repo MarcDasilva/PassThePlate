@@ -107,7 +107,7 @@ export default function Home() {
           </div>
           <div className="col-span-12 md:col-span-5 flex flex-col items-center justify-center">
             <div
-              className={`relative w-full aspect-square transition-all duration-1000 delay-300 ease-out ${
+              className={`relative w-full aspect-square border-2 border-black transition-all duration-1000 delay-300 ease-out ${
                 isVisible.hero
                   ? "translate-y-0 opacity-100 scale-100"
                   : "translate-y-10 opacity-0 scale-95"
@@ -353,9 +353,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-8 px-4 md:px-8 bg-black text-white">
         <div className="container mx-auto flex justify-center items-center">
-          <p className="text-sm">
-            © 2025 PassThePlate. All rights reserved.
-          </p>
+          <p className="text-sm">© 2025 PassThePlate. All rights reserved.</p>
         </div>
       </footer>
     </main>
