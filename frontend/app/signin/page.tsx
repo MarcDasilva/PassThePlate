@@ -105,13 +105,13 @@ export default function SignInPage() {
     <main className="min-h-screen bg-[#367230]">
       <Navbar />
       <div className="pt-32 pb-20 px-4 md:px-8 container mx-auto">
-        <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
+        <div className="max-w-md mx-auto bg-white p-8 border border-black">
           <h1 className="text-4xl font-bold tracking-tighter mb-6 text-black text-center">
             {isSignUp ? "Sign Up" : "Sign In"}
           </h1>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700">
               {error}
             </div>
           )}
