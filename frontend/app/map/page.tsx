@@ -12,6 +12,8 @@ import {
   getAvailableDonations,
   getUserDonations,
   deleteDonation,
+  updateDonationStatus,
+  getDonationsClaimedByUser,
   Donation,
 } from "@/app/lib/supabase/donations";
 import {
@@ -37,6 +39,7 @@ const MapComponent = dynamic(() => import("./MapComponent"), {
   donations?: Donation[];
   requests?: Request[];
   radius?: number;
+  onDonationPickedUp?: (donationId: string) => void;
 }>;
 
 // Testing flag - set to true to use default location when geolocation is unavailable
@@ -55,6 +58,7 @@ export default function MapPage() {
   const [locationUnavailable, setLocationUnavailable] = useState(false);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [userDonations, setUserDonations] = useState<Donation[]>([]);
+  const [pickingUpDonations, setPickingUpDonations] = useState<Donation[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
   const [userRequests, setUserRequests] = useState<Request[]>([]);
   const [isPostDonationModalOpen, setIsPostDonationModalOpen] = useState(false);
@@ -62,7 +66,8 @@ export default function MapPage() {
     useState(false);
   const [isMyPostingsOpen, setIsMyPostingsOpen] = useState(false);
   const [isMyRequestsOpen, setIsMyRequestsOpen] = useState(false);
-  const [toggleEnabled, setToggleEnabled] = useState(false);
+  const [isPickingUpOpen, setIsPickingUpOpen] = useState(false);
+  const [unclaimingId, setUnclaimingId] = useState<string | null>(null);
   const [radius, setRadius] = useState<number>(500); // Default 500m
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -152,6 +157,16 @@ export default function MapPage() {
         // Fetch user's own donations
         const myDonations = await getUserDonations(user.id);
         setUserDonations(myDonations);
+
+        // Fetch donations claimed by the current user (filter out items older than 3 days)
+        const claimedDonations = await getDonationsClaimedByUser(user.id);
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+        const recentClaimedDonations = claimedDonations.filter((donation) => {
+          const updatedAt = new Date(donation.updated_at);
+          return updatedAt >= threeDaysAgo;
+        });
+        setPickingUpDonations(recentClaimedDonations);
 
         // Fetch available requests
         const availableRequests = await getAvailableRequests();
@@ -286,6 +301,74 @@ export default function MapPage() {
     setRequestToDelete(null);
   };
 
+  const handleDonationPickedUp = async (donationId: string) => {
+    if (!user) return;
+
+    // Update donation status to "claimed" and set claimed_by to current user
+    const { error } = await updateDonationStatus(
+      donationId,
+      "claimed",
+      user.id
+    );
+
+    if (error) {
+      alert(`Failed to pick up donation: ${error.message}`);
+      return;
+    }
+
+    // Refresh all donation lists
+    const availableDonations = await getAvailableDonations();
+    setDonations(availableDonations);
+
+    // Fetch donations claimed by the current user (filter out items older than 3 days)
+    const claimedDonations = await getDonationsClaimedByUser(user.id);
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const recentClaimedDonations = claimedDonations.filter((donation) => {
+      const updatedAt = new Date(donation.updated_at);
+      return updatedAt >= threeDaysAgo;
+    });
+    setPickingUpDonations(recentClaimedDonations);
+
+    const myDonations = await getUserDonations(user.id);
+    setUserDonations(myDonations);
+  };
+
+  const handlePickingUp = () => {
+    setIsPickingUpOpen(true);
+  };
+
+  const handleUnclaimDonation = async (donationId: string) => {
+    if (!user) return;
+
+    setUnclaimingId(donationId);
+
+    // Update donation status back to "available" and clear claimed_by
+    const { error } = await updateDonationStatus(donationId, "available", null);
+
+    if (error) {
+      alert(`Failed to unclaim donation: ${error.message}`);
+      setUnclaimingId(null);
+      return;
+    }
+
+    // Refresh all donation lists
+    const availableDonations = await getAvailableDonations();
+    setDonations(availableDonations);
+
+    // Fetch donations claimed by the current user (filter out items older than 3 days)
+    const claimedDonations = await getDonationsClaimedByUser(user.id);
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const recentClaimedDonations = claimedDonations.filter((donation) => {
+      const updatedAt = new Date(donation.updated_at);
+      return updatedAt >= threeDaysAgo;
+    });
+    setPickingUpDonations(recentClaimedDonations);
+
+    setUnclaimingId(null);
+  };
+
   const handleFilter = () => {
     // TODO: Open filter modal or sidebar
     console.log("Filter clicked");
@@ -384,6 +467,7 @@ export default function MapPage() {
             donations={donations}
             requests={requests}
             radius={radius}
+            onDonationPickedUp={handleDonationPickedUp}
           />
         ) : locationUnavailable ? (
           <div className="w-full h-full flex items-center justify-center bg-gray-50">
@@ -481,35 +565,13 @@ export default function MapPage() {
                 My Postings ({userDonations.length})
               </button>
 
-              {/* Toggle Switch */}
-              <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
-                <label className="flex items-center justify-between cursor-pointer group">
-                  <span className="text-xs md:text-sm font-medium text-gray-700">
-                    Toggle
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={toggleEnabled}
-                      onChange={(e) => setToggleEnabled(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`relative w-9 h-5 md:w-10 md:h-5 lg:w-11 lg:h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                        toggleEnabled ? "bg-[#367230]" : "bg-gray-300"
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-0.5 left-0.5 w-4 h-4 md:w-4 md:h-4 lg:w-5 lg:h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
-                          toggleEnabled
-                            ? "translate-x-4 md:translate-x-5 lg:translate-x-5"
-                            : "translate-x-0"
-                        }`}
-                      />
-                    </div>
-                  </div>
-                </label>
-              </div>
+              {/* Picking Up Button */}
+              <button
+                onClick={handlePickingUp}
+                className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+              >
+                Picking Up ({pickingUpDonations.length})
+              </button>
 
               {/* Radius Selection Card */}
               <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
@@ -646,36 +708,6 @@ export default function MapPage() {
               >
                 My Requests ({userRequests.length})
               </button>
-
-              {/* Toggle Switch */}
-              <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
-                <label className="flex items-center justify-between cursor-pointer group">
-                  <span className="text-xs md:text-sm font-medium text-gray-700">
-                    Toggle
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={toggleEnabled}
-                      onChange={(e) => setToggleEnabled(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`relative w-9 h-5 md:w-10 md:h-5 lg:w-11 lg:h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                        toggleEnabled ? "bg-red-900" : "bg-gray-300"
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-0.5 left-0.5 w-4 h-4 md:w-4 md:h-4 lg:w-5 lg:h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
-                          toggleEnabled
-                            ? "translate-x-4 md:translate-x-5 lg:translate-x-5"
-                            : "translate-x-0"
-                        }`}
-                      />
-                    </div>
-                  </div>
-                </label>
-              </div>
 
               {/* Radius Selection Card */}
               <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
@@ -883,6 +915,134 @@ export default function MapPage() {
                             {donation.category && (
                               <span className="bg-[#367230] bg-opacity-10 px-2 py-1 rounded border border-[#367230] border-opacity-20 text-black">
                                 {donation.category}
+                              </span>
+                            )}
+                            {donation.expiry_date && (
+                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 rounded border border-[#367230] border-opacity-20 text-black">
+                                Expires:{" "}
+                                {new Date(
+                                  donation.expiry_date
+                                ).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Picking Up Modal */}
+      {isPickingUpOpen && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={() => setIsPickingUpOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-gray-100 transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200 bg-[#367230] bg-opacity-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tighter text-black">
+                    Picking Up
+                  </h2>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Items picked up 3 days ago will disappear
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsPickingUpOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto max-h-[calc(85vh-100px)] p-6">
+              {pickingUpDonations.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg
+                    className="w-16 h-16 text-gray-400 mx-auto mb-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <p className="text-gray-600 font-medium mb-2">
+                    No items being picked up
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Pick up donations from the map to see them here
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pickingUpDonations.map((donation) => (
+                    <div
+                      key={donation.id}
+                      className="bg-[#367230] bg-opacity-5 rounded-lg p-4 border border-[#367230] border-opacity-20 hover:border-opacity-30 transition-all"
+                    >
+                      <div className="flex gap-4">
+                        <div className="flex-shrink-0">
+                          {donation.image_url && (
+                            <img
+                              src={donation.image_url}
+                              alt={donation.title}
+                              className="w-20 h-20 md:w-24 md:h-24 rounded-lg object-cover border-2 border-[#367230] border-opacity-20"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="font-semibold text-black text-sm md:text-base truncate">
+                              {donation.title}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 bg-yellow-100 text-yellow-700">
+                                claimed
+                              </span>
+                              <button
+                                onClick={() =>
+                                  handleUnclaimDonation(donation.id)
+                                }
+                                disabled={unclaimingId === donation.id}
+                                className="text-gray-500 hover:text-red-600 text-xl font-bold w-6 h-6 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Nevermind"
+                              >
+                                {unclaimingId === donation.id ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                                ) : (
+                                  "×"
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-xs md:text-sm text-gray-700 line-clamp-2 mb-2">
+                            {donation.description}
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
+                            {donation.category && (
+                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 rounded border border-[#367230] border-opacity-20 text-black">
+                                {donation.category}
+                              </span>
+                            )}
+                            {donation.address && (
+                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 rounded border border-[#367230] border-opacity-20 text-black">
+                                📍 {donation.address}
                               </span>
                             )}
                             {donation.expiry_date && (

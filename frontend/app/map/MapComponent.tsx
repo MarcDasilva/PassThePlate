@@ -59,6 +59,7 @@ interface MapComponentProps {
   donations?: Donation[];
   requests?: Request[];
   radius?: number;
+  onDonationPickedUp?: (donationId: string) => void;
 }
 
 export default function MapComponent({
@@ -66,6 +67,7 @@ export default function MapComponent({
   donations = [],
   requests = [],
   radius = 500,
+  onDonationPickedUp,
 }: MapComponentProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -289,11 +291,12 @@ export default function MapComponent({
                 )}</p>`
               : ""
           }
-          <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
             <button 
               id="view-profile-${donation.id}" 
               style="
                 flex: 1;
+                min-width: 80px;
                 padding: 8px 12px; 
                 background-color: #367230; 
                 color: white; 
@@ -313,6 +316,7 @@ export default function MapComponent({
               id="directions-${donation.id}" 
               style="
                 flex: 1;
+                min-width: 80px;
                 padding: 8px 12px; 
                 background-color: #3b82f6; 
                 color: white; 
@@ -328,6 +332,30 @@ export default function MapComponent({
             >
               Directions
             </button>
+            ${
+              donation.status === "available"
+                ? `<button 
+                    id="pick-up-${donation.id}" 
+                    style="
+                      flex: 1;
+                      min-width: 80px;
+                      padding: 8px 12px; 
+                      background-color: #10b981; 
+                      color: white; 
+                      border: none; 
+                      border-radius: 4px; 
+                      cursor: pointer; 
+                      font-size: 14px;
+                      font-weight: 500;
+                      transition: background-color 0.2s;
+                    "
+                    onmouseover="this.style.backgroundColor='#059669'"
+                    onmouseout="this.style.backgroundColor='#10b981'"
+                  >
+                    Pick Up
+                  </button>`
+                : ""
+            }
           </div>
         </div>
       `;
@@ -362,10 +390,24 @@ export default function MapComponent({
         });
       }
 
+      // Add click handler for pick up button
+      const pickUpBtn = popupContent.querySelector(
+        `#pick-up-${donation.id}`
+      ) as HTMLButtonElement;
+      if (pickUpBtn && onDonationPickedUp) {
+        pickUpBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+
+          // Call the callback to handle pick up
+          onDonationPickedUp(donation.id);
+        });
+      }
+
       marker.bindPopup(popupContent);
       donationMarkersRef.current.push(marker);
     });
-  }, [donations]);
+  }, [donations, onDonationPickedUp]);
 
   // Update request markers when requests change
   useEffect(() => {

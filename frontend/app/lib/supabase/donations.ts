@@ -68,6 +68,7 @@ export interface Donation {
   image_url: string | null;
   expiry_date: string | null;
   status: "available" | "claimed" | "completed";
+  claimed_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -185,6 +186,88 @@ export async function getUserDonations(userId: string): Promise<Donation[]> {
 
   if (error || !data) {
     console.error("Error fetching user donations:", error);
+    return [];
+  }
+
+  return data as Donation[];
+}
+
+/**
+ * Update a donation's status
+ */
+export async function updateDonationStatus(
+  donationId: string,
+  status: "available" | "claimed" | "completed",
+  claimedBy?: string | null
+): Promise<{ data: Donation | null; error: any }> {
+  const supabase = createClient();
+
+  const updateData: { status: string; claimed_by?: string | null } = { status };
+  if (claimedBy !== undefined) {
+    updateData.claimed_by = claimedBy;
+  }
+
+  // First, check if the donation exists and is available (if claiming)
+  if (status === "claimed") {
+    const { data: existingDonation, error: fetchError } = await supabase
+      .from("donations")
+      .select("id, status")
+      .eq("id", donationId)
+      .single();
+
+    if (fetchError || !existingDonation) {
+      return {
+        data: null,
+        error: new Error("Donation not found"),
+      };
+    }
+
+    if (existingDonation.status !== "available") {
+      return {
+        data: null,
+        error: new Error("Donation is no longer available"),
+      };
+    }
+  }
+
+  // Update the donation
+  const { data, error } = await supabase
+    .from("donations")
+    .update(updateData)
+    .eq("id", donationId)
+    .select();
+
+  if (error) {
+    console.error("Error updating donation status:", error);
+    return { data: null, error };
+  }
+
+  if (!data || data.length === 0) {
+    return {
+      data: null,
+      error: new Error("Donation not found or update failed"),
+    };
+  }
+
+  return { data: data[0] as Donation, error: null };
+}
+
+/**
+ * Get donations claimed by a specific user
+ */
+export async function getDonationsClaimedByUser(
+  userId: string
+): Promise<Donation[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("donations")
+    .select("*")
+    .eq("claimed_by", userId)
+    .eq("status", "claimed")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    console.error("Error fetching claimed donations:", error);
     return [];
   }
 
