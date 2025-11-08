@@ -3,7 +3,7 @@
 import React from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
@@ -22,7 +22,11 @@ import {
   deleteRequest,
   Request,
 } from "@/app/lib/supabase/requests";
-import { createMonetaryDonation } from "@/app/lib/supabase/monetary-donations";
+import {
+  createMonetaryDonation,
+  getAllMonetaryDonations,
+  MonetaryDonation,
+} from "@/app/lib/supabase/monetary-donations";
 import PostDonationModal from "./PostDonationModal";
 import RequestDonationModal from "./RequestDonationModal";
 import DonationSliderModal from "./DonationSliderModal";
@@ -173,6 +177,7 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
   useEffect(() => {
     if (globeRef.current) {
       const controls = globeRef.current.controls();
+      const camera = globeRef.current.camera();
       // Enable auto-rotate
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.5;
@@ -204,7 +209,7 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
         ))}
       </div>
       {/* Globe */}
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-full" style={{ paddingTop: "80px" }}>
         <Globe
           ref={globeRef}
           globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
@@ -309,6 +314,125 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
   );
 }
 
+// Connection Map Component - shows donation paths as arcs
+interface ConnectionMapProps {
+  donations: MonetaryDonation[];
+}
+
+function ConnectionMap({ donations }: ConnectionMapProps) {
+  const globeRef = useRef<any>(null);
+  const [dots, setDots] = useState<Array<{ x: number; y: number }>>([]);
+
+  useEffect(() => {
+    // Generate grey dots symmetrically across the background
+    const generatedDots: Array<{ x: number; y: number }> = [];
+    const numDotsX = 20;
+    const numDotsY = 20;
+
+    for (let i = 0; i < numDotsX; i++) {
+      for (let j = 0; j < numDotsY; j++) {
+        const x = (i / (numDotsX - 1)) * 100;
+        const y = (j / (numDotsY - 1)) * 100;
+        generatedDots.push({ x, y });
+      }
+    }
+
+    setDots(generatedDots);
+  }, []);
+
+  useEffect(() => {
+    if (globeRef.current) {
+      const controls = globeRef.current.controls();
+      const camera = globeRef.current.camera();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+      controls.enableZoom = true;
+      controls.minDistance = 100;
+      controls.maxDistance = 2000;
+      controls.zoomSpeed = 1.2;
+    }
+  }, []);
+
+  // Generate random color function
+  const getRandomColor = (seed: number) => {
+    const colors = [
+      [220, 38, 38], // Red
+      [34, 197, 94], // Green
+      [59, 130, 246], // Blue
+      [168, 85, 247], // Purple
+      [236, 72, 153], // Pink
+      [251, 146, 60], // Orange
+      [234, 179, 8], // Yellow
+      [14, 165, 233], // Cyan
+      [139, 92, 246], // Violet
+      [20, 184, 166], // Teal
+    ];
+    // Use seed to ensure consistent color for each donation
+    const randomColor = colors[seed % colors.length];
+    return `rgba(${randomColor[0]}, ${randomColor[1]}, ${randomColor[2]}, 0.7)`;
+  };
+
+  // Convert donations to arcs format for react-globe.gl - memoized to prevent recreation
+  const arcs = useMemo(() => {
+    return donations.map((donation, index) => {
+      // Use donation id or index as seed for consistent color
+      const seed = donation.id ? donation.id.charCodeAt(0) : index;
+      const color = getRandomColor(seed);
+      return {
+        startLat: donation.from_latitude,
+        startLng: donation.from_longitude,
+        endLat: donation.to_latitude,
+        endLng: donation.to_longitude,
+        color: [color, color], // Same color for start and end
+      };
+    });
+  }, [donations]);
+
+  return (
+    <div className="relative w-full h-full bg-black">
+      {/* Grey dots background */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none">
+        {dots.map((dot, index) => (
+          <div
+            key={index}
+            className="absolute rounded-full bg-gray-500 opacity-30"
+            style={{
+              left: `${dot.x}%`,
+              top: `${dot.y}%`,
+              width: "4px",
+              height: "4px",
+              transform: "translate(-50%, -50%)",
+            }}
+          />
+        ))}
+      </div>
+      {/* Globe with arcs - showing earth model */}
+      <div className="relative w-full h-full" style={{ paddingTop: "90px" }}>
+        <Globe
+          ref={globeRef}
+          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+          backgroundColor="rgba(0,0,0,0)"
+          showAtmosphere={false}
+          enablePointerInteraction={true}
+          showGlobe={true}
+          showGraticules={false}
+          arcsData={arcs}
+          arcStartLat="startLat"
+          arcStartLng="startLng"
+          arcEndLat="endLat"
+          arcEndLng="endLng"
+          arcColor="color"
+          arcStroke={2}
+          arcDashLength={0.4}
+          arcDashGap={0.1}
+          arcDashAnimateTime={10000}
+          arcCurveResolution={64}
+        />
+      </div>
+    </div>
+  );
+}
+
 // Testing flag - set to true to use default location when geolocation is unavailable
 const USE_DEFAULT_LOCATION_FOR_TESTING = true;
 // Princeton University coordinates
@@ -347,6 +471,10 @@ export default function MapPage() {
     useState(false);
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   const [isWorldMapActive, setIsWorldMapActive] = useState(false);
+  const [isConnectionMapActive, setIsConnectionMapActive] = useState(false);
+  const [monetaryDonations, setMonetaryDonations] = useState<
+    MonetaryDonation[]
+  >([]);
   const [isControlsMinimized, setIsControlsMinimized] = useState(false);
   const [isRequestMenuMinimized, setIsRequestMenuMinimized] = useState(true);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -451,6 +579,10 @@ export default function MapPage() {
         // Fetch user's own requests
         const myRequests = await getUserRequests(user.id);
         setUserRequests(myRequests);
+
+        // Fetch monetary donations for connection map
+        const monetaryDonationsData = await getAllMonetaryDonations();
+        setMonetaryDonations(monetaryDonationsData);
       }
     };
 
@@ -735,8 +867,8 @@ export default function MapPage() {
       />
       <Navbar />
 
-      {/* World Map Globe - shown when toggle is active */}
-      {isWorldMapActive && (
+      {/* World Map Globe - shown when toggle is active and connection map is not active */}
+      {isWorldMapActive && !isConnectionMapActive && (
         <div className="absolute inset-0 w-full h-full z-0 bg-black">
           <WorldGlobe
             requests={requests}
@@ -747,6 +879,13 @@ export default function MapPage() {
               setShowPinModal(true);
             }}
           />
+        </div>
+      )}
+
+      {/* Connection Map - shown when both world map and connection map toggles are active */}
+      {isWorldMapActive && isConnectionMapActive && (
+        <div className="absolute inset-0 w-full h-full z-0 bg-black">
+          <ConnectionMap donations={monetaryDonations} />
         </div>
       )}
 
@@ -807,7 +946,7 @@ export default function MapPage() {
           <div className="p-3 md:p-4 bg-gray-50 border-b border-gray-200">
             <label className="flex items-center justify-between cursor-pointer group">
               <span className="text-xs md:text-sm font-medium text-gray-700">
-                World Map Toggle
+                World Map
               </span>
               <div className="relative">
                 <input
@@ -833,6 +972,40 @@ export default function MapPage() {
             </label>
           </div>
         </div>
+
+        {/* Connection Map Toggle - only show when world map is active */}
+        {isWorldMapActive && (
+          <div className="bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 w-40 md:w-52 lg:w-64 overflow-hidden mb-2">
+            <div className="p-3 md:p-4 bg-gray-50 border-b border-gray-200">
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-xs md:text-sm font-medium text-gray-700">
+                  Connection Map
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={isConnectionMapActive}
+                    onChange={(e) => setIsConnectionMapActive(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`relative w-9 h-5 md:w-10 md:h-5 lg:w-11 lg:h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                      isConnectionMapActive ? "bg-[#367230]" : "bg-gray-300"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 left-0.5 w-4 h-4 md:w-4 md:h-4 lg:w-5 lg:h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                        isConnectionMapActive
+                          ? "translate-x-4 md:translate-x-5 lg:translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Post a Donation Menu - only show if world map is not active */}
         {!isWorldMapActive && (

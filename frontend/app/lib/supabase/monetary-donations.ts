@@ -1,7 +1,7 @@
 import { createClient } from "./client";
 
 export interface MonetaryDonation {
-  id: string;
+  id: string; // Random transaction code (12-character alphanumeric)
   user_id: string;
   from_latitude: number;
   from_longitude: number;
@@ -45,3 +45,20 @@ export async function createMonetaryDonation(
   return { data: data as MonetaryDonation, error: null };
 }
 
+/**
+ * Get all monetary donations
+ */
+export async function getAllMonetaryDonations(): Promise<MonetaryDonation[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("monetary_donations")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching monetary donations:", error);
+    return [];
+  }
+
+  return data || [];
+}
