@@ -762,7 +762,7 @@ export default function MapPage() {
       )}
 
       {/* Overlay controls - positioned on top of map */}
-      <div className="absolute top-20 left-2 md:top-24 md:left-4 lg:left-8 z-10">
+      <div className="absolute top-24 left-2 md:top-24 md:left-4 lg:left-8 z-10">
         {/* World Map Toggle */}
         <div className="bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 w-40 md:w-52 lg:w-64 overflow-hidden mb-2">
           <div className="p-3 md:p-4 bg-gray-50 border-b border-gray-200">
