@@ -88,7 +88,7 @@ export default function MapComponent({
     // Initialize the map
     const map = L.map(mapContainerRef.current, {
       center: center,
-      zoom: 17,
+      zoom: 16,
       scrollWheelZoom: true,
       zoomControl: true,
       doubleClickZoom: true,

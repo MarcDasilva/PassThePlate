@@ -1019,6 +1019,8 @@ export default function MapPage() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [selectedPinCount, setSelectedPinCount] = useState<number>(0);
   const [selectedPinRequests, setSelectedPinRequests] = useState<Request[]>([]);
+  const [maxPinCount, setMaxPinCount] = useState<number>(0);
+  const [barAnimated, setBarAnimated] = useState(false);
   const [showDonationSlider, setShowDonationSlider] = useState(false);
   const [selectedPinCoordinates, setSelectedPinCoordinates] = useState<
     [number, number] | null
@@ -1446,10 +1448,20 @@ export default function MapPage() {
           <WorldGlobe
             requests={requests}
             onPinClick={(count, pinRequests, coordinates) => {
+              // Calculate max count from all grouped requests
+              const groupedRequests = groupRequestsByLocation(requests);
+              const maxCount = Math.max(
+                ...groupedRequests.map((group) => group.count),
+                1
+              );
               setSelectedPinCount(count);
               setSelectedPinRequests(pinRequests);
               setSelectedPinCoordinates(coordinates);
+              setMaxPinCount(maxCount);
+              setBarAnimated(false);
               setShowPinModal(true);
+              // Trigger animation after modal opens
+              setTimeout(() => setBarAnimated(true), 100);
             }}
           />
         </div>
@@ -2297,55 +2309,130 @@ export default function MapPage() {
                 </button>
               </div>
             </div>
-            <div className="overflow-y-auto max-h-[calc(85vh-150px)] p-6">
-              {selectedPinRequests.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-600 font-medium mb-2">
-                    No requests found
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {selectedPinRequests.map((request) => (
-                    <div
-                      key={request.id}
-                      className="bg-red-900 bg-opacity-5 p-4 border border-black"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="font-semibold text-black text-sm md:text-base truncate">
-                          {request.title}
-                        </h3>
-                        <span
-                          className={`px-2 py-1 text-xs font-medium flex-shrink-0 border border-black ${
-                            request.status === "open"
-                              ? "bg-red-900 bg-opacity-20 text-red-900"
-                              : request.status === "fulfilled"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {request.status}
-                        </span>
+            {/* Comparison Bar - Vertical, Blue, Animated with Requests List */}
+            <div className="p-3 md:p-6 border-b border-black bg-gradient-to-br from-gray-50 to-gray-100">
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6 h-auto md:h-[400px]">
+                {/* Left Side - Bars */}
+                <div className="flex items-end justify-center md:justify-start gap-4 md:gap-6 flex-shrink-0">
+                  {/* Vertical Bar Container - This Area */}
+                  <div className="flex flex-col items-center gap-1 md:gap-2">
+                    <div className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      This Area
+                    </div>
+                    <div className="relative w-12 md:w-16 lg:w-20 h-32 md:h-64 lg:h-full bg-gray-200 overflow-hidden border-2 border-gray-300 shadow-inner">
+                      <div
+                        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 shadow-lg ${
+                          barAnimated ? "animate-fillUp" : ""
+                        }`}
+                        style={{
+                          height: barAnimated
+                            ? `${
+                                maxPinCount > 0
+                                  ? (selectedPinCount / maxPinCount) * 100
+                                  : 0
+                              }%`
+                            : "0%",
+                          minHeight: selectedPinCount > 0 ? "8px" : "0px",
+                          transition: barAnimated
+                            ? "height 1.5s ease-out"
+                            : "none",
+                        }}
+                      >
+                        {/* Animated shimmer effect */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent animate-shimmer"></div>
                       </div>
-                      <p className="text-xs md:text-sm text-gray-700 line-clamp-2 mb-2">
-                        {request.description}
-                      </p>
-                      <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
-                        {request.address && (
-                          <span className="bg-red-900 bg-opacity-10 px-2 py-1 border border-black text-black">
-                            📍 {request.address}
-                          </span>
-                        )}
-                        {request.phone_number && (
-                          <span className="bg-red-900 bg-opacity-10 px-2 py-1 border border-black text-black">
-                            📞 {request.phone_number}
-                          </span>
-                        )}
+                      {/* Count label inside bar */}
+                      {selectedPinCount > 0 && (
+                        <div
+                          className="absolute left-1/2 transform -translate-x-1/2 text-white font-bold text-sm md:text-base lg:text-lg z-10 transition-all duration-1500 ease-out drop-shadow-lg"
+                          style={{
+                            bottom: `${
+                              maxPinCount > 0
+                                ? (selectedPinCount / maxPinCount) * 100
+                                : 0
+                            }%`,
+                            marginBottom: "4px",
+                          }}
+                        >
+                          {selectedPinCount}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-[10px] md:text-xs font-medium text-gray-600 text-center">
+                      {selectedPinCount} request
+                      {selectedPinCount !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+
+                  {/* Max Area Bar */}
+                  <div className="flex flex-col items-center gap-1 md:gap-2">
+                    <div className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Highest Area
+                    </div>
+                    <div className="relative w-12 md:w-16 lg:w-20 h-32 md:h-64 lg:h-full bg-gray-200 overflow-hidden border-2 border-gray-300 shadow-inner">
+                      <div className="absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-blue-300 via-blue-200 to-blue-100 opacity-40"></div>
+                      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-600 font-bold text-sm md:text-base lg:text-lg">
+                        {maxPinCount}
                       </div>
                     </div>
-                  ))}
+                    <div className="text-[10px] md:text-xs font-medium text-gray-600 text-center">
+                      {maxPinCount} request{maxPinCount !== 1 ? "s" : ""}
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                {/* Right Side - Scrollable Requests List */}
+                <div className="flex-1 overflow-y-auto pr-1 md:pr-2 scrollbar-hide min-h-[200px] md:min-h-0">
+                  {selectedPinRequests.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-gray-600 font-medium mb-2">
+                        No requests found
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 md:space-y-3">
+                      {selectedPinRequests.map((request) => (
+                        <div
+                          key={request.id}
+                          className="bg-red-900 bg-opacity-5 p-3 md:p-4 border border-black hover:bg-opacity-10 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="font-semibold text-black text-xs md:text-sm lg:text-base truncate flex-1">
+                              {request.title}
+                            </h3>
+                            <span
+                              className={`px-1.5 md:px-2 py-0.5 md:py-1 text-[10px] md:text-xs font-medium flex-shrink-0 border border-black ${
+                                request.status === "open"
+                                  ? "bg-red-900 bg-opacity-20 text-red-900"
+                                  : request.status === "fulfilled"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {request.status}
+                            </span>
+                          </div>
+                          <p className="text-[11px] md:text-xs lg:text-sm text-gray-700 line-clamp-2 mb-2">
+                            {request.description}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 md:gap-2 text-[10px] md:text-xs text-gray-600">
+                            {request.address && (
+                              <span className="bg-red-900 bg-opacity-10 px-1.5 md:px-2 py-0.5 md:py-1 border border-black text-black">
+                                📍 {request.address}
+                              </span>
+                            )}
+                            {request.phone_number && (
+                              <span className="bg-red-900 bg-opacity-10 px-1.5 md:px-2 py-0.5 md:py-1 border border-black text-black">
+                                📞 {request.phone_number}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="p-6 border-t border-black">
               <div className="flex gap-3">

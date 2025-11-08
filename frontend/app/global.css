@@ -170,3 +170,33 @@ body {
 .animate-fadeInUp {
   animation: fadeInUp 0.3s ease-out;
 }
+
+/* Comparison bar fill animation */
+@keyframes fillUp {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+/* Shimmer effect for comparison bar */
+@keyframes shimmer {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.animate-fillUp {
+  animation: fillUp 1.5s ease-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
