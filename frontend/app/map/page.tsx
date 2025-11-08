@@ -180,20 +180,63 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
   }, [requests]);
 
   useEffect(() => {
-    if (globeRef.current) {
-      const controls = globeRef.current.controls();
-      const camera = globeRef.current.camera();
-      // Enable auto-rotate
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.5;
-      controls.enableZoom = true;
-      // Increase zoom capability - allow much closer zoom
-      controls.minDistance = 100;
-      controls.maxDistance = 2000;
-      // Make zoom more sensitive for better control
-      controls.zoomSpeed = 1.2;
-    }
-  }, []);
+    // Wait for globe to be fully initialized before setting controls
+    const setupControls = () => {
+      if (globeRef.current) {
+        try {
+          const controls = globeRef.current.controls();
+          if (controls) {
+            // Enable auto-rotate
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            controls.enableZoom = true;
+            // Increase zoom capability - allow much closer zoom
+            controls.minDistance = 100;
+            controls.maxDistance = 2000;
+            // Make zoom more sensitive for better control
+            controls.zoomSpeed = 1.2;
+            return true;
+          }
+        } catch (error) {
+          // Controls not ready yet
+          return false;
+        }
+      }
+      return false;
+    };
+
+    // Use requestAnimationFrame to wait for the globe to be fully rendered
+    let frameId: number | null = null;
+    let attempts = 0;
+    const maxAttempts = 20; // Increased attempts for first load
+
+    const trySetup = () => {
+      attempts++;
+      if (setupControls() || attempts >= maxAttempts) {
+        if (frameId !== null) {
+          cancelAnimationFrame(frameId);
+        }
+        return;
+      }
+      frameId = requestAnimationFrame(trySetup);
+    };
+
+    // Start trying immediately and also after a short delay
+    frameId = requestAnimationFrame(trySetup);
+    const timeoutId = setTimeout(() => {
+      if (frameId === null) {
+        // If not set up yet, try again
+        frameId = requestAnimationFrame(trySetup);
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [pins]); // Re-run when pins change (globe might re-render)
 
   return (
     <div className="relative w-full h-full bg-black">
@@ -367,17 +410,60 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
   }, []);
 
   useEffect(() => {
-    if (globeRef.current) {
-      const controls = globeRef.current.controls();
-      const camera = globeRef.current.camera();
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.5;
-      controls.enableZoom = true;
-      controls.minDistance = 100;
-      controls.maxDistance = 2000;
-      controls.zoomSpeed = 1.2;
-    }
-  }, []);
+    // Wait for globe to be fully initialized before setting controls
+    const setupControls = () => {
+      if (globeRef.current) {
+        try {
+          const controls = globeRef.current.controls();
+          if (controls) {
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            controls.enableZoom = true;
+            controls.minDistance = 100;
+            controls.maxDistance = 2000;
+            controls.zoomSpeed = 1.2;
+            return true;
+          }
+        } catch (error) {
+          // Controls not ready yet
+          return false;
+        }
+      }
+      return false;
+    };
+
+    // Use requestAnimationFrame to wait for the globe to be fully rendered
+    let frameId: number | null = null;
+    let attempts = 0;
+    const maxAttempts = 20; // Increased attempts for first load
+
+    const trySetup = () => {
+      attempts++;
+      if (setupControls() || attempts >= maxAttempts) {
+        if (frameId !== null) {
+          cancelAnimationFrame(frameId);
+        }
+        return;
+      }
+      frameId = requestAnimationFrame(trySetup);
+    };
+
+    // Start trying immediately and also after a short delay
+    frameId = requestAnimationFrame(trySetup);
+    const timeoutId = setTimeout(() => {
+      if (frameId === null) {
+        // If not set up yet, try again
+        frameId = requestAnimationFrame(trySetup);
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [donations]); // Re-run when donations change (globe might re-render)
 
   // Shuffle donations randomly
   useEffect(() => {
