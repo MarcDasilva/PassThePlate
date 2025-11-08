@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { Donation } from "@/app/lib/supabase/donations";
+import ProfileModal from "./ProfileModal";
 
 // Fix for Leaflet default icon in Next.js
 if (typeof window !== "undefined") {
@@ -51,6 +52,8 @@ export default function MapComponent({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const donationMarkersRef = useRef<L.Marker[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -128,9 +131,11 @@ export default function MapComponent({
         icon: donationIcon,
       }).addTo(mapRef.current!);
 
-      // Create popup content with escaped HTML
-      const popupContent = `
-        <div style="min-width: 200px;">
+      // Create popup content with escaped HTML and view profile button
+      const popupContent = document.createElement("div");
+      popupContent.style.minWidth = "200px";
+      popupContent.innerHTML = `
+        <div>
           <h3 style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px;">${escapeHtml(
             donation.title
           )}</h3>
@@ -146,13 +151,46 @@ export default function MapComponent({
           }
           ${
             donation.address
-              ? `<p style="margin: 0; font-size: 12px;"><strong>Address:</strong> ${escapeHtml(
+              ? `<p style="margin: 0 0 12px 0; font-size: 12px;"><strong>Address:</strong> ${escapeHtml(
                   donation.address
                 )}</p>`
               : ""
           }
+          <button 
+            id="view-profile-${donation.id}" 
+            style="
+              width: 100%; 
+              padding: 8px 12px; 
+              background-color: #367230; 
+              color: white; 
+              border: none; 
+              border-radius: 4px; 
+              cursor: pointer; 
+              font-size: 14px;
+              font-weight: 500;
+              transition: background-color 0.2s;
+            "
+            onmouseover="this.style.backgroundColor='#244b20'"
+            onmouseout="this.style.backgroundColor='#367230'"
+          >
+            View Profile
+          </button>
         </div>
       `;
+
+      // Add click handler for view profile button
+      const viewProfileBtn = popupContent.querySelector(
+        `#view-profile-${donation.id}`
+      ) as HTMLButtonElement;
+      if (viewProfileBtn) {
+        viewProfileBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          setSelectedUserId(donation.user_id);
+          setIsProfileModalOpen(true);
+          // Close the popup when opening profile modal
+          marker.closePopup();
+        });
+      }
 
       marker.bindPopup(popupContent);
       donationMarkersRef.current.push(marker);
@@ -160,10 +198,22 @@ export default function MapComponent({
   }, [donations]);
 
   return (
-    <div
-      ref={mapContainerRef}
-      className="w-full h-full"
-      style={{ minHeight: "100%" }}
-    />
+    <>
+      <div
+        ref={mapContainerRef}
+        className="w-full h-full"
+        style={{ minHeight: "100%" }}
+      />
+      {selectedUserId && (
+        <ProfileModal
+          userId={selectedUserId}
+          isOpen={isProfileModalOpen}
+          onClose={() => {
+            setIsProfileModalOpen(false);
+            setSelectedUserId(null);
+          }}
+        />
+      )}
+    </>
   );
 }
