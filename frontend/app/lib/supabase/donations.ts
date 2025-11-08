@@ -171,3 +171,63 @@ export async function createDonation(
 
   return { data: data as Donation, error: null };
 }
+
+/**
+ * Get donations by user ID
+ */
+export async function getUserDonations(userId: string): Promise<Donation[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("donations")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    console.error("Error fetching user donations:", error);
+    return [];
+  }
+
+  return data as Donation[];
+}
+
+/**
+ * Delete a donation
+ */
+export async function deleteDonation(
+  donationId: string,
+  userId: string
+): Promise<{ error: any }> {
+  const supabase = createClient();
+
+  // First verify the donation belongs to the user
+  const { data: donation, error: fetchError } = await supabase
+    .from("donations")
+    .select("user_id, image_url")
+    .eq("id", donationId)
+    .single();
+
+  if (fetchError || !donation) {
+    return { error: fetchError || new Error("Donation not found") };
+  }
+
+  if (donation.user_id !== userId) {
+    return {
+      error: new Error("Unauthorized: Cannot delete other users' donations"),
+    };
+  }
+
+  // Delete the donation
+  const { error } = await supabase
+    .from("donations")
+    .delete()
+    .eq("id", donationId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Error deleting donation:", error);
+    return { error };
+  }
+
+  return { error: null };
+}

@@ -8,7 +8,12 @@ import dynamic from "next/dynamic";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
 import { hasProfile, getProfile, Profile } from "@/app/lib/supabase/profile";
-import { getAvailableDonations, Donation } from "@/app/lib/supabase/donations";
+import {
+  getAvailableDonations,
+  getUserDonations,
+  deleteDonation,
+  Donation,
+} from "@/app/lib/supabase/donations";
 import PostDonationModal from "./PostDonationModal";
 import "leaflet/dist/leaflet.css";
 
@@ -41,9 +46,14 @@ export default function MapPage() {
   );
   const [locationUnavailable, setLocationUnavailable] = useState(false);
   const [donations, setDonations] = useState<Donation[]>([]);
+  const [userDonations, setUserDonations] = useState<Donation[]>([]);
   const [isPostDonationModalOpen, setIsPostDonationModalOpen] = useState(false);
+  const [isMyPostingsOpen, setIsMyPostingsOpen] = useState(false);
   const [toggleEnabled, setToggleEnabled] = useState(false);
   const [radius, setRadius] = useState<number>(500); // Default 500m
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [donationToDelete, setDonationToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -117,6 +127,10 @@ export default function MapPage() {
       if (user && !checkingProfile) {
         const availableDonations = await getAvailableDonations();
         setDonations(availableDonations);
+
+        // Fetch user's own donations
+        const myDonations = await getUserDonations(user.id);
+        setUserDonations(myDonations);
       }
     };
 
@@ -136,7 +150,51 @@ export default function MapPage() {
     if (user && !checkingProfile) {
       const availableDonations = await getAvailableDonations();
       setDonations(availableDonations);
+
+      // Refresh user's donations
+      const myDonations = await getUserDonations(user.id);
+      setUserDonations(myDonations);
     }
+  };
+
+  const handleDeleteClick = (donationId: string) => {
+    setDonationToDelete(donationId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!user || !donationToDelete) return;
+
+    setShowDeleteConfirm(false);
+    setDeletingId(donationToDelete);
+
+    const { error } = await deleteDonation(donationToDelete, user.id);
+
+    if (error) {
+      alert(`Failed to delete posting: ${error.message}`);
+      setDeletingId(null);
+      setDonationToDelete(null);
+      return;
+    }
+
+    // Refresh both lists
+    const availableDonations = await getAvailableDonations();
+    setDonations(availableDonations);
+
+    const myDonations = await getUserDonations(user.id);
+    setUserDonations(myDonations);
+
+    setDeletingId(null);
+    setDonationToDelete(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setDonationToDelete(null);
+  };
+
+  const handleMyPostings = () => {
+    setIsMyPostingsOpen(!isMyPostingsOpen);
   };
 
   const handleFilter = () => {
@@ -294,6 +352,14 @@ export default function MapPage() {
             Filter
           </button>
 
+          {/* My Postings Button */}
+          <button
+            onClick={handleMyPostings}
+            className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+          >
+            My Postings ({userDonations.length})
+          </button>
+
           {/* Toggle Switch */}
           <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
             <label className="flex items-center justify-between cursor-pointer group">
@@ -407,6 +473,179 @@ export default function MapPage() {
         onSuccess={handleDonationPosted}
         currentLocation={userLocation}
       />
+
+      {/* My Postings Modal */}
+      {isMyPostingsOpen && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={() => setIsMyPostingsOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-gray-100 transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200 bg-[#367230] bg-opacity-10">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold tracking-tighter text-black">
+                  My Postings
+                </h2>
+                <button
+                  onClick={() => setIsMyPostingsOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto max-h-[calc(85vh-100px)] p-6">
+              {userDonations.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg
+                    className="w-16 h-16 text-gray-400 mx-auto mb-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <p className="text-gray-600 font-medium mb-2">
+                    No postings yet
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Create your first donation posting to get started
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userDonations.map((donation) => (
+                    <div
+                      key={donation.id}
+                      className="bg-[#367230] bg-opacity-5 rounded-lg p-4 border border-[#367230] border-opacity-20 hover:border-opacity-30 transition-all"
+                    >
+                      <div className="flex gap-4">
+                        <div className="flex-shrink-0 relative">
+                          {donation.image_url && (
+                            <img
+                              src={donation.image_url}
+                              alt={donation.title}
+                              className="w-20 h-20 md:w-24 md:h-24 rounded-lg object-cover border-2 border-[#367230] border-opacity-20"
+                            />
+                          )}
+                          <button
+                            onClick={() => handleDeleteClick(donation.id)}
+                            disabled={deletingId === donation.id}
+                            className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                            title="Delete"
+                          >
+                            {deletingId === donation.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                            ) : (
+                              <svg
+                                className="w-4 h-4 text-gray-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="font-semibold text-black text-sm md:text-base truncate">
+                              {donation.title}
+                            </h3>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                                donation.status === "available"
+                                  ? "bg-[#367230] bg-opacity-20 text-[#367230]"
+                                  : donation.status === "claimed"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {donation.status}
+                            </span>
+                          </div>
+                          <p className="text-xs md:text-sm text-gray-700 line-clamp-2 mb-2">
+                            {donation.description}
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
+                            {donation.category && (
+                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 rounded border border-[#367230] border-opacity-20 text-black">
+                                {donation.category}
+                              </span>
+                            )}
+                            {donation.expiry_date && (
+                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 rounded border border-[#367230] border-opacity-20 text-black">
+                                Expires:{" "}
+                                {new Date(
+                                  donation.expiry_date
+                                ).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[1001] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={handleDeleteCancel}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 border border-gray-100 transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200 bg-[#367230] bg-opacity-10">
+              <h3 className="text-xl font-bold tracking-tighter text-black">
+                Delete Posting
+              </h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this posting? This action cannot
+                be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
