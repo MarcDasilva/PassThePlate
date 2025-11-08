@@ -68,6 +68,7 @@ export default function MapPage() {
   const [isMyRequestsOpen, setIsMyRequestsOpen] = useState(false);
   const [isPickingUpOpen, setIsPickingUpOpen] = useState(false);
   const [unclaimingId, setUnclaimingId] = useState<string | null>(null);
+  const [showTipComingSoon, setShowTipComingSoon] = useState(false);
   const [radius, setRadius] = useState<number>(500); // Default 500m
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -999,11 +1000,19 @@ export default function MapPage() {
                       <div className="flex gap-4">
                         <div className="flex-shrink-0">
                           {donation.image_url && (
-                            <img
-                              src={donation.image_url}
-                              alt={donation.title}
-                              className="w-20 h-20 md:w-24 md:h-24 rounded-lg object-cover border-2 border-[#367230] border-opacity-20"
-                            />
+                            <>
+                              <img
+                                src={donation.image_url}
+                                alt={donation.title}
+                                className="w-20 h-20 md:w-24 md:h-24 rounded-lg object-cover border-2 border-[#367230] border-opacity-20"
+                              />
+                              <button
+                                onClick={() => setShowTipComingSoon(true)}
+                                className="w-20 md:w-24 mt-2 px-2 py-1.5 bg-[#367230] text-white text-xs font-medium rounded hover:bg-[#244b20] transition-colors"
+                              >
+                                Tip
+                              </button>
+                            </>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1060,6 +1069,38 @@ export default function MapPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tip Coming Soon Modal */}
+      {showTipComingSoon && (
+        <div
+          className="fixed inset-0 z-[1001] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={() => setShowTipComingSoon(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 border border-gray-100 transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200 bg-[#367230] bg-opacity-10">
+              <h3 className="text-xl font-bold tracking-tighter text-black">
+                Coming Soon
+              </h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-6">
+                The tip feature is coming soon!
+              </p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowTipComingSoon(false)}
+                  className="px-4 py-2 bg-[#367230] text-white rounded-lg hover:bg-[#244b20] transition-colors font-medium text-sm"
+                >
+                  OK
+                </button>
+              </div>
             </div>
           </div>
         </div>
