@@ -309,76 +309,78 @@ export default function AccountPage() {
       <main className="min-h-screen bg-[#367230]">
         <Navbar />
         <div className="pt-32 pb-20 px-4 md:px-8 container mx-auto">
-          <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
-            <h1 className="text-4xl font-bold tracking-tighter mb-6 text-black text-center">
-              Complete Your Profile
-            </h1>
-            <p className="text-center text-black/70 mb-8">
-              Please provide some information to get started
-            </p>
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-xl shadow-xl p-6 md:p-8 lg:p-10 border border-gray-100">
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tighter mb-4 text-black text-center">
+                Complete Your Profile
+              </h1>
+              <p className="text-center text-black/70 mb-8 text-lg">
+                Please provide some information to get started
+              </p>
 
-            {error && (
-              <div className="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                {error}
-              </div>
-            )}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                  {error}
+                </div>
+              )}
 
-            <form onSubmit={handleSetupSubmit} className="space-y-6">
-              <div className="flex justify-center">
-                <ProfilePictureUpload
-                  currentAvatarUrl={setupAvatarUrl}
-                  onUpload={handleSetupAvatarUpload}
-                  onRemove={
-                    setupAvatarUrl ? handleSetupAvatarRemove : undefined
-                  }
-                  uploading={uploadingAvatar}
-                />
-              </div>
+              <form onSubmit={handleSetupSubmit} className="space-y-6">
+                <div className="flex justify-center">
+                  <ProfilePictureUpload
+                    currentAvatarUrl={setupAvatarUrl}
+                    onUpload={handleSetupAvatarUpload}
+                    onRemove={
+                      setupAvatarUrl ? handleSetupAvatarRemove : undefined
+                    }
+                    uploading={uploadingAvatar}
+                  />
+                </div>
 
-              <div>
-                <label
-                  htmlFor="setupName"
-                  className="block text-sm uppercase tracking-widest mb-2 text-black"
+                <div>
+                  <label
+                    htmlFor="setupName"
+                    className="block text-sm uppercase tracking-widest mb-2 text-black"
+                  >
+                    Name *
+                  </label>
+                  <input
+                    id="setupName"
+                    type="text"
+                    value={setupName}
+                    onChange={(e) => setSetupName(e.target.value)}
+                    required
+                    className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
+                    placeholder="Enter your name"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="setupAboutMe"
+                    className="block text-sm uppercase tracking-widest mb-2 text-black"
+                  >
+                    About Me *
+                  </label>
+                  <textarea
+                    id="setupAboutMe"
+                    value={setupAboutMe}
+                    onChange={(e) => setSetupAboutMe(e.target.value)}
+                    required
+                    rows={4}
+                    className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
+                    placeholder="Tell us about yourself"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={setupLoading}
+                  className="w-full px-8 py-3 bg-[#367230] text-white text-sm uppercase tracking-widest hover:bg-[#244b20] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold"
                 >
-                  Name
-                </label>
-                <input
-                  id="setupName"
-                  type="text"
-                  value={setupName}
-                  onChange={(e) => setSetupName(e.target.value)}
-                  required
-                  className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
-                  placeholder="Enter your name"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="setupAboutMe"
-                  className="block text-sm uppercase tracking-widest mb-2 text-black"
-                >
-                  About Me
-                </label>
-                <textarea
-                  id="setupAboutMe"
-                  value={setupAboutMe}
-                  onChange={(e) => setSetupAboutMe(e.target.value)}
-                  required
-                  rows={4}
-                  className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
-                  placeholder="Tell us about yourself"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={setupLoading}
-                className="w-full px-8 py-3 bg-black text-white text-sm uppercase tracking-widest hover:bg-[#367230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {setupLoading ? "Saving..." : "Complete Setup"}
-              </button>
-            </form>
+                  {setupLoading ? "Saving..." : "Complete Setup"}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </main>
@@ -393,19 +395,23 @@ export default function AccountPage() {
     <main className="min-h-screen bg-[#367230]">
       <Navbar />
       <div className="pt-32 pb-20 px-4 md:px-8 container mx-auto">
-        <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
-          <h1 className="text-4xl font-bold tracking-tighter mb-8 text-black text-center">
-            Account
-          </h1>
+        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Profile Background Header */}
+          <div className="relative h-48 md:h-64 w-full overflow-hidden">
+            <img
+              src="/bg.jpg"
+              alt="Profile background"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white"></div>
+          </div>
 
-          <div className="space-y-6">
-            {error && (
-              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                {error}
-              </div>
-            )}
-
-            <div className="flex justify-center">
+          {/* Profile Picture - Overlapping the background */}
+          <div className="relative -mt-24 md:-mt-32 flex justify-center mb-6">
+            <div className="relative z-10">
               <ProfilePictureUpload
                 currentAvatarUrl={profile.avatar_url}
                 onUpload={handleAvatarUpload}
@@ -413,110 +419,125 @@ export default function AccountPage() {
                 uploading={uploadingAvatar}
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                Name
-              </label>
-              <p className="text-lg text-black">{profile.name}</p>
-            </div>
+          {/* Content */}
+          <div className="px-8 pb-8">
+            <h1 className="text-4xl font-bold tracking-tighter mb-8 text-black text-center">
+              Account
+            </h1>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm uppercase tracking-widest text-black">
-                  About Me
-                </label>
-                {!isEditingAbout && (
-                  <button
-                    onClick={handleEditAbout}
-                    className="text-sm uppercase tracking-widest text-black hover:text-[#367230] transition-colors underline"
-                  >
-                    Edit
-                  </button>
-                )}
-              </div>
-              {isEditingAbout ? (
-                <div className="space-y-3">
-                  <textarea
-                    value={editedAbout}
-                    onChange={(e) => setEditedAbout(e.target.value)}
-                    rows={4}
-                    className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
-                    placeholder="Tell us about yourself"
-                  />
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleSaveAbout}
-                      disabled={saving}
-                      className="px-6 py-2 bg-black text-white text-sm uppercase tracking-widest hover:bg-[#367230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {saving ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      disabled={saving}
-                      className="px-6 py-2 border border-black text-black text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+            <div className="space-y-6">
+              {error && (
+                <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {error}
                 </div>
-              ) : (
-                <p className="text-lg text-black whitespace-pre-wrap">
-                  {profile.about_me}
-                </p>
               )}
-            </div>
 
-            <div>
-              <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                Email
-              </label>
-              <p className="text-lg text-black">{user.email}</p>
-            </div>
-
-            {/* Rating and Achievements Section */}
-            <div className="pt-6 border-t border-black space-y-6">
-              {/* Rating */}
               <div>
                 <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                  Rating
+                  Name
                 </label>
-                {profile.rating !== null && profile.rating !== undefined ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-[#367230]">
-                      {profile.rating.toFixed(1)}
-                    </span>
-                    <span className="text-gray-500">/ 5.0</span>
-                    <span className="text-yellow-400 text-xl">★</span>
+                <p className="text-lg text-black">{profile.name}</p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm uppercase tracking-widest text-black">
+                    About Me
+                  </label>
+                  {!isEditingAbout && (
+                    <button
+                      onClick={handleEditAbout}
+                      className="text-sm uppercase tracking-widest text-black hover:text-[#367230] transition-colors underline"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {isEditingAbout ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={editedAbout}
+                      onChange={(e) => setEditedAbout(e.target.value)}
+                      rows={4}
+                      className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
+                      placeholder="Tell us about yourself"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleSaveAbout}
+                        disabled={saving}
+                        className="px-6 py-2 bg-black text-white text-sm uppercase tracking-widest hover:bg-[#367230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {saving ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={saving}
+                        className="px-6 py-2 border border-black text-black text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-lg text-gray-500">No rating yet</p>
+                  <p className="text-lg text-black whitespace-pre-wrap">
+                    {profile.about_me}
+                  </p>
                 )}
               </div>
 
-              {/* Achievements */}
               <div>
                 <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                  Achievements
+                  Email
                 </label>
-                {profile.achievements ? (
-                  <p className="text-lg text-black whitespace-pre-wrap">
-                    {profile.achievements}
-                  </p>
-                ) : (
-                  <p className="text-lg text-gray-500">No achievements yet</p>
-                )}
+                <p className="text-lg text-black">{user.email}</p>
               </div>
-            </div>
 
-            <div className="pt-6 border-t border-black">
-              <button
-                onClick={handleLogout}
-                className="w-full px-8 py-3 bg-black text-white text-sm uppercase tracking-widest hover:bg-red-600 transition-colors"
-              >
-                Sign Out
-              </button>
+              {/* Rating and Achievements Section */}
+              <div className="pt-6 border-t border-black space-y-6">
+                {/* Rating */}
+                <div>
+                  <label className="block text-sm uppercase tracking-widest mb-2 text-black">
+                    Rating
+                  </label>
+                  {profile.rating !== null && profile.rating !== undefined ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-bold text-[#367230]">
+                        {profile.rating.toFixed(1)}
+                      </span>
+                      <span className="text-gray-500">/ 5.0</span>
+                      <span className="text-yellow-400 text-xl">★</span>
+                    </div>
+                  ) : (
+                    <p className="text-lg text-gray-500">No rating yet</p>
+                  )}
+                </div>
+
+                {/* Achievements */}
+                <div>
+                  <label className="block text-sm uppercase tracking-widest mb-2 text-black">
+                    Achievements
+                  </label>
+                  {profile.achievements ? (
+                    <p className="text-lg text-black whitespace-pre-wrap">
+                      {profile.achievements}
+                    </p>
+                  ) : (
+                    <p className="text-lg text-gray-500">No achievements yet</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-black">
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-8 py-3 bg-black text-white text-sm uppercase tracking-widest hover:bg-red-600 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </div>
