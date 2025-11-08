@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import { Navbar, navLinkClasses } from "./components/navbar";
+import { useEffect, useRef, useState } from "react";
+
 const inputClasses =
   "w-full bg-transparent border-b-2 border-white py-2 px-0 focus:outline-none focus:border-black placeholder-white/50";
 const projectNumberClasses = "text-black text-8xl font-bold";
@@ -23,28 +27,92 @@ const projects = [
 ];
 
 export default function Home() {
+  const [isVisible, setIsVisible] = useState({
+    hero: false,
+    mission: false,
+    help: false,
+  });
+
+  const heroRef = useRef<HTMLElement>(null);
+  const missionRef = useRef<HTMLElement>(null);
+  const helpRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: "0px 0px -50px 0px",
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.getAttribute("data-section");
+          if (sectionId) {
+            setIsVisible((prev) => ({ ...prev, [sectionId]: true }));
+          }
+        }
+      });
+    }, observerOptions);
+
+    const refs = [
+      { ref: heroRef, id: "hero" },
+      { ref: missionRef, id: "mission" },
+      { ref: helpRef, id: "help" },
+    ];
+
+    refs.forEach(({ ref, id }) => {
+      if (ref.current) {
+        ref.current.setAttribute("data-section", id);
+        observer.observe(ref.current);
+      }
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#367230]">
       {/* Navigation */}
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 md:px-8 container mx-auto">
+      <section
+        ref={heroRef}
+        className="pt-32 pb-20 px-4 md:px-8 container mx-auto"
+      >
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-7 mb-8 md:mb-0">
-            <h1 className="text-8xl md:text-[10rem] font-bold tracking-tighter leading-none mb-6 text-white">
+            <h1
+              className={`text-8xl md:text-[10rem] font-bold tracking-tighter leading-none mb-6 text-white transition-all duration-1000 ease-out ${
+                isVisible.hero
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-10 opacity-0"
+              }`}
+            >
               SHARE.
               <br />
               SAVE.
               <br />
               EARN.
             </h1>
-            <p className="text-xl max-w-xl text-white">
+            <p
+              className={`text-xl max-w-xl text-white transition-all duration-1000 delay-200 ease-out ${
+                isVisible.hero
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-10 opacity-0"
+              }`}
+            >
               Share Goods, Save Lives, Earn Rewards
             </p>
           </div>
           <div className="col-span-12 md:col-span-5 flex flex-col items-center justify-center">
-            <div className="relative w-full aspect-square">
+            <div
+              className={`relative w-full aspect-square transition-all duration-1000 delay-300 ease-out ${
+                isVisible.hero
+                  ? "translate-y-0 opacity-100 scale-100"
+                  : "translate-y-10 opacity-0 scale-95"
+              }`}
+            >
               <Image
                 src="/frontimage.png"
                 alt="Front Image"
@@ -54,7 +122,13 @@ export default function Home() {
               <div className="absolute -bottom-3 -right-3 w-30 h-30 bg-black" />
             </div>
             {/* Caption below the image */}
-            <p className="mt-4 text-center text-white text-xl max-w-xl">
+            <p
+              className={`mt-4 text-center text-white text-xl max-w-xl transition-all duration-1000 delay-500 ease-out ${
+                isVisible.hero
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-10 opacity-0"
+              }`}
+            >
               "1 in 7 Households experience Food Insecurity" - USDA
             </p>
           </div>
@@ -63,46 +137,98 @@ export default function Home() {
 
       {/* Mission Section */}
       <section
+        ref={missionRef}
         id="mission"
-        className="py-20 px-4 md:px-8 bg-[#244b20] text-white"
+        className="py-20 px-4 md:px-8 bg-[#244b20] text-white relative overflow-hidden"
       >
         <div className="container mx-auto">
-          <h2 className="text-6xl font-bold tracking-tighter mb-12">Mission</h2>
+          <h2
+            className={`text-6xl font-bold tracking-tighter mb-12 transition-all duration-1000 ease-out ${
+              isVisible.mission
+                ? "translate-x-0 opacity-100"
+                : "-translate-x-10 opacity-0"
+            }`}
+          >
+            Mission
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {projects.map(({ id, title, description }) => (
-              <div key={id} className="group">
-                <div className="aspect-square bg-white mb-4 overflow-hidden">
-                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 group-hover:bg-red-600 transition-colors duration-300">
-                    <span className={projectNumberClasses}>{id}</span>
+            {projects.map(({ id, title, description }, index) => (
+              <div
+                key={id}
+                className={`group transition-all duration-700 ease-out ${
+                  isVisible.mission
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-20 opacity-0"
+                }`}
+                style={{
+                  transitionDelay: `${index * 150}ms`,
+                }}
+              >
+                <div className="aspect-square bg-white mb-4 overflow-hidden rounded-sm">
+                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 group-hover:bg-red-600 transition-all duration-500 transform group-hover:scale-105">
+                    <span
+                      className={`${projectNumberClasses} transition-all duration-500 group-hover:scale-110`}
+                    >
+                      {id}
+                    </span>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2">{title}</h3>
-                <p className="text-neutral-400">{description}</p>
+                <h3 className="text-xl font-bold mb-2 transition-transform duration-300 group-hover:translate-x-1">
+                  {title}
+                </h3>
+                <p className="text-neutral-400 transition-transform duration-300 group-hover:translate-x-1">
+                  {description}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Mission Section */}
+      {/* How We Can Help Section */}
       <section
-        id="mission"
+        ref={helpRef}
+        id="help"
         className="py-20 px-4 md:px-8 bg-[#244b20] text-white"
       >
         <div className="container mx-auto">
-          <h2 className="text-6xl font-bold tracking-tighter mb-12">
+          <h2
+            className={`text-6xl font-bold tracking-tighter mb-12 transition-all duration-1000 ease-out ${
+              isVisible.help
+                ? "translate-x-0 opacity-100"
+                : "translate-x-10 opacity-0"
+            }`}
+          >
             How We Can Help
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {projects.map(({ id, title, description }) => (
-              <div key={id} className="group">
-                <div className="aspect-square bg-white mb-4 overflow-hidden">
-                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 group-hover:bg-red-600 transition-colors duration-300">
-                    <span className={projectNumberClasses}>{id}</span>
+            {projects.map(({ id, title, description }, index) => (
+              <div
+                key={`help-${id}`}
+                className={`group transition-all duration-700 ease-out ${
+                  isVisible.help
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-20 opacity-0"
+                }`}
+                style={{
+                  transitionDelay: `${index * 150}ms`,
+                }}
+              >
+                <div className="aspect-square bg-white mb-4 overflow-hidden rounded-sm">
+                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 group-hover:bg-[#367230] transition-all duration-500 transform group-hover:scale-105">
+                    <span
+                      className={`${projectNumberClasses} transition-all duration-500 group-hover:scale-110`}
+                    >
+                      {id}
+                    </span>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2">{title}</h3>
-                <p className="text-neutral-400">{description}</p>
+                <h3 className="text-xl font-bold mb-2 transition-transform duration-300 group-hover:translate-x-1">
+                  {title}
+                </h3>
+                <p className="text-neutral-400 transition-transform duration-300 group-hover:translate-x-1">
+                  {description}
+                </p>
               </div>
             ))}
           </div>
