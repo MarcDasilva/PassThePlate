@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
 import { hasProfile, getProfile, Profile } from "@/app/lib/supabase/profile";
+import { getAvailableDonations, Donation } from "@/app/lib/supabase/donations";
 import "leaflet/dist/leaflet.css";
 
 // Dynamically import the map component to avoid SSR issues
@@ -18,7 +19,12 @@ const MapComponent = dynamic(() => import("./MapComponent"), {
       <p className="text-gray-600">Loading map...</p>
     </div>
   ),
-}) as React.ComponentType<{ center: [number, number] }>;
+}) as React.ComponentType<{ center: [number, number]; donations?: Donation[] }>;
+
+// Testing flag - set to true to use default location when geolocation is unavailable
+const USE_DEFAULT_LOCATION_FOR_TESTING = true;
+// Princeton University coordinates
+const PRINCETON_UNIVERSITY_LOCATION: [number, number] = [40.3431, -74.6553];
 
 export default function MapPage() {
   const { user, loading } = useAuth();
@@ -29,6 +35,7 @@ export default function MapPage() {
     null
   );
   const [locationUnavailable, setLocationUnavailable] = useState(false);
+  const [donations, setDonations] = useState<Donation[]>([]);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -66,9 +73,16 @@ export default function MapPage() {
           setLocationUnavailable(false);
         },
         (error) => {
-          // Location unavailable - don't set a default location
+          // Location unavailable
           console.warn("Geolocation error:", error);
-          setLocationUnavailable(true);
+          if (USE_DEFAULT_LOCATION_FOR_TESTING) {
+            // For testing: use Princeton University as default location
+            setUserLocation(PRINCETON_UNIVERSITY_LOCATION);
+            setLocationUnavailable(false);
+          } else {
+            // Production: show unavailable message
+            setLocationUnavailable(true);
+          }
         },
         {
           enableHighAccuracy: true,
@@ -78,9 +92,28 @@ export default function MapPage() {
       );
     } else {
       // Geolocation not supported
-      setLocationUnavailable(true);
+      if (USE_DEFAULT_LOCATION_FOR_TESTING) {
+        // For testing: use Princeton University as default location
+        setUserLocation(PRINCETON_UNIVERSITY_LOCATION);
+        setLocationUnavailable(false);
+      } else {
+        // Production: show unavailable message
+        setLocationUnavailable(true);
+      }
     }
   }, []);
+
+  // Fetch donations when user is authenticated
+  useEffect(() => {
+    const fetchDonations = async () => {
+      if (user && !checkingProfile) {
+        const availableDonations = await getAvailableDonations();
+        setDonations(availableDonations);
+      }
+    };
+
+    fetchDonations();
+  }, [user, checkingProfile]);
 
   const handlePostDonation = () => {
     // TODO: Navigate to post donation page or open modal
@@ -134,7 +167,7 @@ export default function MapPage() {
             <div className="flex-1 relative z-0">
               <div className="aspect-square w-full max-w-[600px] bg-white rounded-lg shadow-2xl overflow-hidden border-4 border-white relative z-0">
                 {userLocation ? (
-                  <MapComponent center={userLocation} />
+                  <MapComponent center={userLocation} donations={donations} />
                 ) : locationUnavailable ? (
                   <div className="w-full h-full flex items-center justify-center bg-gray-200">
                     <p className="text-gray-600 text-center px-4">
