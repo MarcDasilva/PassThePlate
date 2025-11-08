@@ -250,130 +250,126 @@ export default function MapPage() {
       </div>
 
       {/* Overlay controls - positioned on top of map */}
-      {/* Mobile: horizontal across top, Desktop: vertical on left */}
-      <div className="absolute top-20 left-0 right-0 md:top-24 md:left-4 md:right-auto md:w-auto z-10 px-4 md:px-0">
-        <div className="bg-white rounded-xl shadow-lg p-3 md:p-6 border border-gray-100 md:w-64">
-          {/* Mobile: horizontal layout */}
-          <div className="flex flex-row md:flex-col gap-2 md:gap-4 overflow-x-auto md:overflow-x-visible">
-            {/* Post a Donation Button */}
-            <div className="bg-gradient-to-br from-[#367230] to-[#244b20] rounded-lg p-2 md:p-4 shadow-md hover:shadow-lg transition-shadow flex-shrink-0">
-              <button
-                onClick={handlePostDonation}
-                className="w-full text-xs md:text-sm font-semibold uppercase tracking-wider text-white py-2 md:py-3 px-3 md:px-4 rounded-md transition-all hover:opacity-90 active:scale-95 whitespace-nowrap"
-              >
-                Post a Donation
-              </button>
-            </div>
-
-            {/* Filter Button */}
+      <div className="absolute top-20 md:top-24 left-2 md:left-4 z-10">
+        <div className="bg-white rounded-xl shadow-lg p-3 md:p-6 space-y-2 md:space-y-4 border border-gray-100 w-48 md:w-64">
+          {/* Post a Donation Button */}
+          <div className="bg-gradient-to-br from-[#367230] to-[#244b20] rounded-lg p-2 md:p-4 shadow-md hover:shadow-lg transition-shadow">
             <button
-              onClick={handleFilter}
-              className="text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-3 md:px-5 py-2 transition-colors hover:bg-black hover:text-white rounded-md flex-shrink-0 whitespace-nowrap"
+              onClick={handlePostDonation}
+              className="w-full text-xs md:text-sm font-semibold uppercase tracking-wider text-white py-2 md:py-3 px-2 md:px-4 rounded-md transition-all hover:opacity-90 active:scale-95"
             >
-              Filter
+              Post a Donation
             </button>
+          </div>
 
-            {/* Toggle Switch */}
-            <div className="bg-gray-50 rounded-lg p-2 md:p-4 border border-gray-200 flex-shrink-0">
-              <label className="flex items-center justify-between cursor-pointer group gap-2">
-                <span className="text-xs md:text-sm font-medium text-gray-700 whitespace-nowrap">
-                  Toggle
-                </span>
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={toggleEnabled}
-                    onChange={(e) => setToggleEnabled(e.target.checked)}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`relative w-9 h-5 md:w-11 md:h-6 rounded-full transition-colors duration-200 ease-in-out ${
-                      toggleEnabled ? "bg-[#367230]" : "bg-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 w-4 h-4 md:w-5 md:h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
-                        toggleEnabled
-                          ? "translate-x-4 md:translate-x-5"
-                          : "translate-x-0"
-                      }`}
-                    />
-                  </div>
-                </div>
-              </label>
-            </div>
+          {/* Filter Button */}
+          <button
+            onClick={handleFilter}
+            className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-3 md:px-5 py-2 transition-colors hover:bg-black hover:text-white rounded-md"
+          >
+            Filter
+          </button>
 
-            {/* Radius Selection Card */}
-            <div className="bg-gray-50 rounded-lg p-2 md:p-4 border border-gray-200 flex-shrink-0 min-w-[200px] md:min-w-0">
-              <div className="mb-2 md:mb-3">
-                <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 md:mb-2">
-                  Radius:{" "}
-                  {radius >= 1000
-                    ? `${(radius / 1000).toFixed(1)}km`
-                    : `${radius}m`}
-                </label>
+          {/* Toggle Switch */}
+          <div className="bg-gray-50 rounded-lg p-2 md:p-4 border border-gray-200">
+            <label className="flex items-center justify-between cursor-pointer group">
+              <span className="text-xs md:text-sm font-medium text-gray-700">
+                Toggle
+              </span>
+              <div className="relative">
                 <input
-                  type="range"
-                  min="100"
-                  max="2000"
-                  step="50"
-                  value={radius}
-                  onChange={(e) => setRadius(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  style={{
-                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
-                      ((radius - 100) / (2000 - 100)) * 100
-                    }%, #e5e7eb ${
-                      ((radius - 100) / (2000 - 100)) * 100
-                    }%, #e5e7eb 100%)`,
-                  }}
+                  type="checkbox"
+                  checked={toggleEnabled}
+                  onChange={(e) => setToggleEnabled(e.target.checked)}
+                  className="sr-only"
                 />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>100m</span>
-                  <span>2km</span>
+                <div
+                  className={`relative w-9 h-5 md:w-11 md:h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                    toggleEnabled ? "bg-[#367230]" : "bg-gray-300"
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 md:w-5 md:h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                      toggleEnabled
+                        ? "translate-x-4 md:translate-x-5"
+                        : "translate-x-0"
+                    }`}
+                  />
                 </div>
               </div>
-              <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-gray-200">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                    In Range
-                  </p>
-                  <p className="text-xl md:text-2xl font-bold text-gray-900">
-                    {userLocation
-                      ? donations.filter((donation) => {
-                          const distance = calculateDistance(
-                            userLocation[0],
-                            userLocation[1],
-                            donation.latitude,
-                            donation.longitude
-                          );
-                          // Convert distance from km to meters for comparison
-                          return distance * 1000 <= radius;
-                        }).length
-                      : 0}
-                  </p>
-                </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-500 rounded-lg flex items-center justify-center opacity-50">
-                  <svg
-                    className="w-5 h-5 md:w-6 md:h-6 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                </div>
+            </label>
+          </div>
+
+          {/* Radius Selection Card */}
+          <div className="bg-gray-50 rounded-lg p-2 md:p-4 border border-gray-200">
+            <div className="mb-2 md:mb-3">
+              <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 md:mb-2">
+                Radius:{" "}
+                {radius >= 1000
+                  ? `${(radius / 1000).toFixed(1)}km`
+                  : `${radius}m`}
+              </label>
+              <input
+                type="range"
+                min="100"
+                max="2000"
+                step="50"
+                value={radius}
+                onChange={(e) => setRadius(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                    ((radius - 100) / (2000 - 100)) * 100
+                  }%, #e5e7eb ${
+                    ((radius - 100) / (2000 - 100)) * 100
+                  }%, #e5e7eb 100%)`,
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>100m</span>
+                <span>2km</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-gray-200">
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                  In Range
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900">
+                  {userLocation
+                    ? donations.filter((donation) => {
+                        const distance = calculateDistance(
+                          userLocation[0],
+                          userLocation[1],
+                          donation.latitude,
+                          donation.longitude
+                        );
+                        // Convert distance from km to meters for comparison
+                        return distance * 1000 <= radius;
+                      }).length
+                    : 0}
+                </p>
+              </div>
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-500 rounded-lg flex items-center justify-center opacity-50">
+                <svg
+                  className="w-5 h-5 md:w-6 md:h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
               </div>
             </div>
           </div>
