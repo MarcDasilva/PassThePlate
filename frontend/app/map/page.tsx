@@ -756,10 +756,9 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
 
   // Convert donations to arcs format for react-globe.gl - memoized to prevent recreation
   const arcs = useMemo(() => {
-    return donations.map((donation, index) => {
-      // Use donation id or index as seed for consistent color
-      const seed = donation.id ? donation.id.charCodeAt(0) : index;
-      const color = getRandomColor(seed);
+    return donations.map((donation) => {
+      // Use grey color for all arcs
+      const color = "#808080"; // Grey color
       return {
         startLat: donation.from_latitude,
         startLng: donation.from_longitude,
@@ -804,7 +803,7 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
           arcEndLat="endLat"
           arcEndLng="endLng"
           arcColor="color"
-          arcStroke={2}
+          arcStroke={0.5}
           arcDashLength={0.4}
           arcDashGap={0.1}
           arcDashAnimateTime={10000}
@@ -2323,7 +2322,7 @@ export default function MapPage() {
             </div>
             {/* Statistics and Requests List */}
             <div className="p-3 md:p-6 border-b border-black bg-gradient-to-br from-gray-50 to-gray-100">
-              <div className="flex flex-col md:flex-row gap-4 md:gap-6 h-auto md:h-[400px]">
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                 {/* Left Side - Statistics */}
                 <div className="flex-shrink-0">
                   <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 md:gap-3">
@@ -2382,7 +2381,7 @@ export default function MapPage() {
                 </div>
 
                 {/* Right Side - Scrollable Requests List */}
-                <div className="flex-1 overflow-y-auto pr-1 md:pr-2 scrollbar-hide min-h-[200px] md:min-h-0">
+                <div className="flex-1 overflow-y-auto pr-1 md:pr-2 scrollbar-hide max-h-[300px] md:max-h-[400px]">
                   {selectedPinRequests.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-gray-600 font-medium mb-2">
