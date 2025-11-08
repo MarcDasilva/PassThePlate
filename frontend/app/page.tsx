@@ -32,6 +32,12 @@ export default function Home() {
     mission: false,
     help: false,
   });
+  const [underlinedWord, setUnderlinedWord] = useState<
+    "share" | "save" | "earn" | null
+  >(null);
+  const [underlinedWords, setUnderlinedWords] = useState<
+    Set<"share" | "save" | "earn">
+  >(new Set());
 
   const heroRef = useRef<HTMLElement>(null);
   const missionRef = useRef<HTMLElement>(null);
@@ -70,6 +76,24 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
+  // Underline animation sequence
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setUnderlinedWord("share");
+      setUnderlinedWords((prev) => new Set(prev).add("share"));
+      setTimeout(() => {
+        setUnderlinedWord("save");
+        setUnderlinedWords((prev) => new Set(prev).add("save"));
+        setTimeout(() => {
+          setUnderlinedWord("earn");
+          setUnderlinedWords((prev) => new Set(prev).add("earn"));
+        }, 500); // 0.5s delay between each word
+      }, 500);
+    }, 200); // Start after 0.2 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#367230]">
       {/* Navigation */}
@@ -89,11 +113,53 @@ export default function Home() {
                   : "translate-y-10 opacity-0"
               }`}
             >
-              SHARE.
+              <span className="inline-block relative">
+                SHARE.
+                {underlinedWords.has("share") && (
+                  <span
+                    className="absolute bottom-0 left-0 h-[2px] bg-black"
+                    style={{
+                      animation:
+                        underlinedWord === "share"
+                          ? "underline 0.5s ease-out forwards"
+                          : "none",
+                      width: underlinedWord === "share" ? undefined : "100%",
+                    }}
+                  />
+                )}
+              </span>
               <br />
-              SAVE.
+              <span className="inline-block relative">
+                SAVE.
+                {underlinedWords.has("save") && (
+                  <span
+                    className="absolute bottom-0 left-0 h-[2px] bg-black"
+                    style={{
+                      animation:
+                        underlinedWord === "save"
+                          ? "underline 0.5s ease-out forwards"
+                          : "none",
+                      width: underlinedWord === "save" ? undefined : "100%",
+                    }}
+                  />
+                )}
+              </span>
               <br />
-              EARN.
+              <span className="inline-block relative">
+                EARN.
+                {underlinedWords.has("earn") && (
+                  <span
+                    className="absolute bottom-0 left-0 h-[2px] bg-black"
+                    style={{
+                      animation:
+                        underlinedWord === "earn"
+                          ? "underline 0.5s ease-out forwards"
+                          : "none",
+                      width: underlinedWord === "earn" ? undefined : "100%",
+                    }}
+                  />
+                )}
+              </span>
             </h1>
             <p
               className={`text-xl max-w-xl text-white transition-all duration-1000 delay-200 ease-out ${

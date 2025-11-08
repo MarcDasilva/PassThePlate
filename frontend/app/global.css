@@ -107,3 +107,12 @@ body {
     color: hsl(var(--foreground));
   }
 }
+
+@keyframes underline {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
