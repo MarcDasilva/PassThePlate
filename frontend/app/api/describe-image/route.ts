@@ -51,12 +51,13 @@ export async function POST(request: NextRequest) {
         {
           parts: [
             {
-              text: `Analyze this image of a donation item and provide a JSON response with the following structure. You MUST include all fields, including expiry_date:
+              text: `Analyze this image of a donation item and provide a JSON response with the following structure. You MUST include all fields, including expiry_date and estimated_value:
 {
   "title": "A short, descriptive title (max 50 characters)",
   "description": "A brief description of the item and its condition (1-2 sentences)",
   "category": "A single category name (e.g., "Food", "Clothing", "Furniture", "Electronics", "Books", "Toys", "Household Items")",
-  "expiry_date": "YYYY-MM-DD format date OR null"
+  "expiry_date": "YYYY-MM-DD format date OR null",
+  "estimated_value": A number representing the estimated dollar value (on the lower end)
 }
 
 IMPORTANT RULES FOR expiry_date:
@@ -67,6 +68,13 @@ IMPORTANT RULES FOR expiry_date:
   * Return a future date in YYYY-MM-DD format (e.g., "2024-12-25")
 - If the item is non-perishable (canned goods, dry goods, clothing, furniture, electronics, etc.), return null
 - ALWAYS include the expiry_date field in your JSON response (either a date string or null)
+
+IMPORTANT RULES FOR estimated_value:
+- Estimate the approximate dollar value of the item on the LOWER end (conservative estimate)
+- Consider the item's condition, age, and market value
+- Return a number (e.g., 5, 10, 25, 50, 100) - do not include dollar signs or currency symbols
+- For items with no significant value (e.g., free items, very worn items), return 0
+- ALWAYS include the estimated_value field in your JSON response as a number
 
 Be specific and helpful. Focus on what the item is, its condition, and why someone would want it.`,
             },
@@ -170,6 +178,16 @@ Be specific and helpful. Focus on what the item is, its condition, and why someo
       if (!jsonData.hasOwnProperty("expiry_date")) {
         jsonData.expiry_date = null;
       }
+
+      // Ensure estimated_value is always present (default to 0 if missing)
+      if (!jsonData.hasOwnProperty("estimated_value")) {
+        jsonData.estimated_value = 0;
+      }
+
+      // Ensure estimated_value is a number
+      if (typeof jsonData.estimated_value !== "number") {
+        jsonData.estimated_value = parseFloat(jsonData.estimated_value) || 0;
+      }
     } catch (parseError) {
       // If JSON parsing fails, try to extract fields manually
       console.warn("Failed to parse JSON, attempting manual extraction");
@@ -192,13 +210,21 @@ Be specific and helpful. Focus on what the item is, its condition, and why someo
         expiryDate = null;
       }
 
+      // Try to extract estimated_value
+      const valueMatch = text.match(/"estimated_value":\s*(\d+(?:\.\d+)?)/);
+      const estimatedValue = valueMatch ? parseFloat(valueMatch[1]) || 0 : 0;
+
       jsonData = {
         title: titleMatch ? titleMatch[1] : "",
         description: descMatch ? descMatch[1] : "",
         category: catMatch ? catMatch[1] : "",
         expiry_date: expiryDate,
+        estimated_value: estimatedValue,
       };
     }
+
+    // Log the response to help debug
+    console.log("Gemini analysis response:", JSON.stringify(jsonData, null, 2));
 
     return NextResponse.json(jsonData);
   } catch (error) {

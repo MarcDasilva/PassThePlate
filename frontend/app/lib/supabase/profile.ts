@@ -222,3 +222,44 @@ export async function redeemGiftCard(
 
   return { error };
 }
+
+/**
+ * Add rewards points to user's profile
+ */
+export async function addRewardsPoints(
+  userId: string,
+  points: number
+): Promise<{ error: any }> {
+  const supabase = createClient();
+
+  // First get current rewards
+  const { data: profile, error: fetchError } = await supabase
+    .from("profiles")
+    .select("rewards")
+    .eq("id", userId)
+    .single();
+
+  if (fetchError || !profile) {
+    return { error: fetchError || new Error("Profile not found") };
+  }
+
+  const currentRewards = profile.rewards || 0;
+  const newRewards = currentRewards + points;
+
+  console.log(`Updating rewards for user ${userId}: ${currentRewards} + ${points} = ${newRewards}`);
+
+  // Update rewards
+  const { error, data: updateData } = await supabase
+    .from("profiles")
+    .update({ rewards: newRewards })
+    .eq("id", userId)
+    .select("rewards");
+
+  if (error) {
+    console.error("Error updating rewards:", error);
+  } else {
+    console.log("Successfully updated rewards. New value:", updateData?.[0]?.rewards);
+  }
+
+  return { error };
+}

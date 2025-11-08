@@ -5,6 +5,7 @@ import {
   createDonation,
   uploadDonationImage,
 } from "@/app/lib/supabase/donations";
+import { addRewardsPoints } from "@/app/lib/supabase/profile";
 import { useAuth } from "@/app/providers/AuthProvider";
 
 interface PostDonationModalProps {
@@ -130,6 +131,7 @@ export default function PostDonationModal({
       if (data.hasOwnProperty("expiry_date")) {
         setExpiryDate(data.expiry_date || "");
       }
+      // Note: We don't store estimated_value here anymore - it will be calculated when posting
     } catch (err: any) {
       console.error("Error describing image:", err);
       setError(err.message || "Failed to describe image with AI");
@@ -265,6 +267,67 @@ export default function PostDonationModal({
         setError(createError.message || "Failed to create donation");
         setLoading(false);
         return;
+      }
+
+      // Calculate and add rewards points based on estimated value from image
+      // Only if there's an image uploaded
+      if (uploadedImageUrl && imageFile) {
+        try {
+          // Convert image to base64 for Gemini analysis
+          const imageBase64 = await convertImageToBase64(imageFile);
+
+          // Call Gemini to get estimated value
+          const describeResponse = await fetch("/api/describe-image", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ imageBase64 }),
+          });
+
+          if (describeResponse.ok) {
+            const describeData = await describeResponse.json();
+            const estimatedValue = describeData.estimated_value || 0;
+
+            console.log(
+              "Estimated value from Gemini during posting:",
+              estimatedValue
+            );
+
+            if (estimatedValue > 0) {
+              // Calculate points: value / 10, rounded to nearest whole number
+              const points = Math.round(estimatedValue / 10);
+              console.log("Calculated points to add:", points);
+
+              if (points > 0) {
+                console.log("Adding rewards points to user:", user.id);
+                const { error: rewardsError } = await addRewardsPoints(
+                  user.id,
+                  points
+                );
+                if (rewardsError) {
+                  console.error("Failed to add rewards points:", rewardsError);
+                  // Don't fail the donation creation if rewards update fails
+                } else {
+                  console.log("Successfully added rewards points!");
+                }
+              } else {
+                console.log("Points calculated as 0, not adding rewards");
+              }
+            } else {
+              console.log("Estimated value is 0, not adding rewards");
+            }
+          } else {
+            console.log(
+              "Failed to get estimated value from Gemini, skipping rewards"
+            );
+          }
+        } catch (err) {
+          console.error("Error getting estimated value for rewards:", err);
+          // Don't fail the donation creation if rewards calculation fails
+        }
+      } else {
+        console.log("No image uploaded, skipping rewards calculation");
       }
 
       // Success - close modal and refresh donations

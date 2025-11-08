@@ -2080,19 +2080,11 @@ export default function MapPage() {
                       <div className="flex gap-4">
                         <div className="flex-shrink-0">
                           {donation.image_url && (
-                            <>
-                              <img
-                                src={donation.image_url}
-                                alt={donation.title}
-                                className="w-20 h-20 md:w-24 md:h-24 object-cover border-2 border-black"
-                              />
-                              <button
-                                onClick={() => setShowTipComingSoon(true)}
-                                className="w-20 md:w-24 mt-2 px-2 py-1.5 bg-[#367230] text-white text-xs font-medium border border-black hover:bg-[#244b20] transition-colors"
-                              >
-                                Tip
-                              </button>
-                            </>
+                            <img
+                              src={donation.image_url}
+                              alt={donation.title}
+                              className="w-20 h-20 md:w-24 md:h-24 object-cover border-2 border-black"
+                            />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
