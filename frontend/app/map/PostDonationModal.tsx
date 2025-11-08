@@ -28,6 +28,7 @@ export default function PostDonationModal({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [describingWithAI, setDescribingWithAI] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export default function PostDonationModal({
       setImagePreview(null);
       setError(null);
       setLocationError(null);
+      setDescribingWithAI(false);
     }
   }, [isOpen]);
 
@@ -79,6 +81,50 @@ export default function PostDonationModal({
     setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDescribeWithAI = async () => {
+    if (!imageFile || !imagePreview) {
+      setError("Please upload an image first");
+      return;
+    }
+
+    setDescribingWithAI(true);
+    setError(null);
+
+    try {
+      // Send the full data URL (includes mime type)
+      const response = await fetch("/api/describe-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageBase64: imagePreview }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to describe image");
+      }
+
+      const data = await response.json();
+
+      // Auto-fill form fields
+      if (data.title) {
+        setTitle(data.title);
+      }
+      if (data.description) {
+        setDescription(data.description);
+      }
+      if (data.category) {
+        setCategory(data.category);
+      }
+    } catch (err: any) {
+      console.error("Error describing image:", err);
+      setError(err.message || "Failed to describe image with AI");
+    } finally {
+      setDescribingWithAI(false);
     }
   };
 
@@ -201,6 +247,73 @@ export default function PostDonationModal({
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Photo section - moved to top */}
+            <div>
+              <label
+                htmlFor="image"
+                className="block text-sm uppercase tracking-widest mb-2 text-black"
+              >
+                Photo
+              </label>
+              {!imagePreview ? (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:uppercase file:tracking-widest file:bg-black file:text-white hover:file:bg-[#367230] file:cursor-pointer"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Max file size: 5MB. Accepted formats: JPG, PNG, GIF, etc.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-40 h-40 object-cover rounded border-2 border-black"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute -top-2 -right-2 bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs hover:bg-red-700"
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {/* Describe with Gemini button */}
+                    <div className="flex flex-col justify-center">
+                      <button
+                        type="button"
+                        onClick={handleDescribeWithAI}
+                        disabled={describingWithAI}
+                        className="h-40 px-4 py-2 bg-[#367230] text-white text-sm uppercase tracking-widest hover:bg-[#244b20] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded flex flex-col items-center justify-center"
+                      >
+                        {describingWithAI ? (
+                          "Analyzing..."
+                        ) : (
+                          <>
+                            <span>Describe</span>
+                            <span>with</span>
+                            <span>Gemini</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {uploadingImage && (
+                    <p className="text-sm text-gray-600">Uploading image...</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div>
               <label
                 htmlFor="title"
@@ -269,50 +382,6 @@ export default function PostDonationModal({
                 className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
                 placeholder="Pickup location details"
               />
-            </div>
-
-            <div>
-              <label
-                htmlFor="image"
-                className="block text-sm uppercase tracking-widest mb-2 text-black"
-              >
-                Photo
-              </label>
-              {!imagePreview ? (
-                <div>
-                  <input
-                    ref={fileInputRef}
-                    id="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:uppercase file:tracking-widest file:bg-black file:text-white hover:file:bg-[#367230] file:cursor-pointer"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Max file size: 5MB. Accepted formats: JPG, PNG, GIF, etc.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="relative">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-48 object-cover rounded border-2 border-black"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded text-sm uppercase tracking-widest hover:bg-red-700"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  {uploadingImage && (
-                    <p className="text-sm text-gray-600">Uploading image...</p>
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="pt-4 flex gap-3">
