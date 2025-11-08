@@ -12,6 +12,20 @@ export interface Profile {
 }
 
 /**
+ * Get default avatar URL
+ */
+export function getDefaultAvatarUrl(): string {
+  return "/pfp.png";
+}
+
+/**
+ * Get avatar URL with fallback to default
+ */
+export function getAvatarUrl(avatarUrl?: string | null): string {
+  return avatarUrl || getDefaultAvatarUrl();
+}
+
+/**
  * Check if a user has completed their profile
  */
 export async function hasProfile(userId: string): Promise<boolean> {
@@ -30,13 +44,13 @@ export async function hasProfile(userId: string): Promise<boolean> {
 }
 
 /**
- * Get user profile
+ * Get user profile (can be used to get own or other users' profiles)
  */
 export async function getProfile(userId: string): Promise<Profile | null> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, name, about_me, avatar_url, created_at, updated_at")
     .eq("id", userId)
     .single();
 
@@ -45,6 +59,45 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   }
 
   return data as Profile;
+}
+
+/**
+ * Get public profile (without email) - for viewing other users
+ */
+export async function getPublicProfile(
+  userId: string
+): Promise<Omit<Profile, "email"> | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, name, about_me, avatar_url, created_at, updated_at")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as Omit<Profile, "email">;
+}
+
+/**
+ * Get multiple user profiles (for displaying other users) - excludes email
+ */
+export async function getProfiles(
+  userIds: string[]
+): Promise<Omit<Profile, "email">[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, name, about_me, avatar_url, created_at, updated_at")
+    .in("id", userIds);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as Omit<Profile, "email">[];
 }
 
 /**

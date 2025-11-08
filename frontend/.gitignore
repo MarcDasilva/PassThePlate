@@ -39,6 +39,8 @@ yarn-error.log*
 
 .next/
 
+supabase.sql
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
