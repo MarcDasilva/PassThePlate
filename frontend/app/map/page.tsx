@@ -302,74 +302,79 @@ export default function MapPage() {
 
           {/* Radius Selection Card */}
           <div className="bg-gray-50 rounded-lg p-2 md:p-4 border border-gray-200">
-            <div className="mb-2 md:mb-3">
-              <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 md:mb-2">
-                Radius:{" "}
-                {radius >= 1000
-                  ? `${(radius / 1000).toFixed(1)}km`
-                  : `${radius}m`}
-              </label>
-              <input
-                type="range"
-                min="100"
-                max="2000"
-                step="50"
-                value={radius}
-                onChange={(e) => setRadius(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
-                    ((radius - 100) / (2000 - 100)) * 100
-                  }%, #e5e7eb ${
-                    ((radius - 100) / (2000 - 100)) * 100
-                  }%, #e5e7eb 100%)`,
-                }}
-              />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                <span>100m</span>
-                <span>2km</span>
+            <div className="flex flex-row md:flex-col gap-3 md:gap-0">
+              {/* Radius Slider - Left side on mobile, full width on desktop */}
+              <div className="flex-1 md:mb-3">
+                <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 md:mb-2">
+                  Radius:{" "}
+                  {radius >= 1000
+                    ? `${(radius / 1000).toFixed(1)}km`
+                    : `${radius}m`}
+                </label>
+                <input
+                  type="range"
+                  min="100"
+                  max="2000"
+                  step="50"
+                  value={radius}
+                  onChange={(e) => setRadius(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                      ((radius - 100) / (2000 - 100)) * 100
+                    }%, #e5e7eb ${
+                      ((radius - 100) / (2000 - 100)) * 100
+                    }%, #e5e7eb 100%)`,
+                  }}
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>100m</span>
+                  <span>2km</span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-gray-200">
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  In Range
-                </p>
-                <p className="text-xl md:text-2xl font-bold text-gray-900">
-                  {userLocation
-                    ? donations.filter((donation) => {
-                        const distance = calculateDistance(
-                          userLocation[0],
-                          userLocation[1],
-                          donation.latitude,
-                          donation.longitude
-                        );
-                        // Convert distance from km to meters for comparison
-                        return distance * 1000 <= radius;
-                      }).length
-                    : 0}
-                </p>
-              </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-500 rounded-lg flex items-center justify-center opacity-50">
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
+
+              {/* In Range Count - Right side on mobile, below on desktop */}
+              <div className="flex items-center justify-between md:justify-start md:pt-3 md:border-t md:border-gray-200">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    In Range
+                  </p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">
+                    {userLocation
+                      ? donations.filter((donation) => {
+                          const distance = calculateDistance(
+                            userLocation[0],
+                            userLocation[1],
+                            donation.latitude,
+                            donation.longitude
+                          );
+                          // Convert distance from km to meters for comparison
+                          return distance * 1000 <= radius;
+                        }).length
+                      : 0}
+                  </p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-500 rounded-lg flex items-center justify-center opacity-50 ml-2 md:ml-0">
+                  <svg
+                    className="w-5 h-5 md:w-6 md:h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
