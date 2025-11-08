@@ -9,6 +9,7 @@ export interface Profile {
   avatar_url?: string | null;
   rating?: number | null;
   achievements?: string | null;
+  rewards?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -52,7 +53,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, rating, achievements, created_at, updated_at")
+    .select("id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at")
     .eq("id", userId)
     .single();
 
@@ -72,7 +73,7 @@ export async function getPublicProfile(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, rating, achievements, created_at, updated_at")
+    .select("id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at")
     .eq("id", userId)
     .single();
 
@@ -92,7 +93,7 @@ export async function getProfiles(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, rating, achievements, created_at, updated_at")
+    .select("id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at")
     .in("id", userIds);
 
   if (error || !data) {
@@ -185,6 +186,39 @@ export async function deleteProfilePicture(
 
   const filePath = urlParts[1].split("?")[0]; // Remove query params if any
   const { error } = await supabase.storage.from("avatars").remove([filePath]);
+
+  return { error };
+}
+
+/**
+ * Redeem gift card (subtract 50 points from rewards)
+ */
+export async function redeemGiftCard(
+  userId: string
+): Promise<{ error: any }> {
+  const supabase = createClient();
+
+  // First check if user has enough points
+  const { data: profile, error: fetchError } = await supabase
+    .from("profiles")
+    .select("rewards")
+    .eq("id", userId)
+    .single();
+
+  if (fetchError || !profile) {
+    return { error: fetchError || new Error("Profile not found") };
+  }
+
+  const currentRewards = profile.rewards || 0;
+  if (currentRewards < 50) {
+    return { error: new Error("Insufficient rewards points. Need 50 points.") };
+  }
+
+  // Subtract 50 points
+  const { error } = await supabase
+    .from("profiles")
+    .update({ rewards: currentRewards - 50 })
+    .eq("id", userId);
 
   return { error };
 }

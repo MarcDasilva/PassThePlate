@@ -15,6 +15,7 @@ import {
 import { Profile } from "@/app/lib/supabase/profile";
 import { ProfilePictureUpload } from "@/app/components/ProfilePictureUpload";
 import { AchievementBadges } from "@/app/components/AchievementBadge";
+import GiftCardModal from "@/app/components/GiftCardModal";
 
 export default function AccountPage() {
   const { user, loading, signOut } = useAuth();
@@ -34,6 +35,7 @@ export default function AccountPage() {
   const [setupLoading, setSetupLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [isGiftCardModalOpen, setIsGiftCardModalOpen] = useState(false);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -585,10 +587,63 @@ export default function AccountPage() {
                   </div>
                 )}
               </div>
+
+              {/* Rewards */}
+              <div className="border-t border-black pt-4 md:pt-5">
+                <label className="block text-xs uppercase tracking-widest mb-2 md:mb-3 text-black">
+                  Rewards
+                </label>
+                <div className="bg-[#367230] bg-opacity-10 border border-black p-4 md:p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-gray-600 mb-1">
+                        Points
+                      </p>
+                      <p className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#367230]">
+                        {profile.rewards || 0}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs uppercase tracking-widest text-gray-600 mb-1">
+                        Value
+                      </p>
+                      <p className="text-lg md:text-xl font-semibold text-black">
+                        ${((profile.rewards || 0) / 10).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsGiftCardModalOpen(true)}
+                    disabled={(profile.rewards || 0) < 50}
+                    className="w-full px-4 py-2 bg-[#367230] text-white text-sm uppercase tracking-widest hover:bg-[#244b20] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#367230] border border-black"
+                  >
+                    Redeem Gift Card
+                  </button>
+                  <p className="text-xs text-gray-600 mt-2 text-center">
+                    50 points = $5 gift card
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Gift Card Modal */}
+      {profile && (
+        <GiftCardModal
+          isOpen={isGiftCardModalOpen}
+          onClose={() => setIsGiftCardModalOpen(false)}
+          currentRewards={profile.rewards || 0}
+          onRedeemSuccess={async () => {
+            // Refresh profile to get updated rewards
+            if (user) {
+              const updatedProfile = await getProfile(user.id);
+              setProfile(updatedProfile);
+            }
+          }}
+        />
+      )}
 
       {/* Footer */}
       <footer className="py-8 px-4 md:px-8 bg-black text-white">
