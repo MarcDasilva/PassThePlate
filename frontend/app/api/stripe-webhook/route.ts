@@ -58,6 +58,19 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // If this is a tip payment, also complete the donation pickup
+    if (session.metadata?.type === "tip" && session.metadata?.donationId) {
+      const { error: updateError } = await supabase
+        .from("donations")
+        .update({ status: "completed" })
+        .eq("id", session.metadata.donationId);
+
+      if (updateError) {
+        console.error("Error completing donation pickup:", updateError);
+        // Don't fail the whole webhook if this fails
+      }
+    }
   }
 
   return NextResponse.json({ received: true });

@@ -27,6 +27,7 @@ import {
   getAllMonetaryDonations,
   MonetaryDonation,
 } from "@/app/lib/supabase/monetary-donations";
+import TipModal from "@/app/components/TipModal";
 import {
   getOrCreateLocationName,
   getLocationNamesBatch,
@@ -993,6 +994,11 @@ export default function MapPage() {
   const [isPickingUpOpen, setIsPickingUpOpen] = useState(false);
   const [unclaimingId, setUnclaimingId] = useState<string | null>(null);
   const [showTipComingSoon, setShowTipComingSoon] = useState(false);
+  const [isTipModalOpen, setIsTipModalOpen] = useState(false);
+  const [donationToConfirm, setDonationToConfirm] = useState<Donation | null>(
+    null
+  );
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [radius, setRadius] = useState<number>(500); // Default 500m
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -2028,6 +2034,9 @@ export default function MapPage() {
                   <p className="text-xs text-gray-600 mt-1">
                     Items picked up 3 days ago will disappear
                   </p>
+                  <p className="text-xs font-semibold text-black mt-2">
+                    Limit: {pickingUpDonations.length}/3
+                  </p>
                 </div>
                 <button
                   onClick={() => setIsPickingUpOpen(false)}
@@ -2134,6 +2143,20 @@ export default function MapPage() {
                               </span>
                             )}
                           </div>
+                          <div className="mt-3">
+                            <button
+                              onClick={() => {
+                                setDonationToConfirm(donation);
+                                setIsTipModalOpen(true);
+                              }}
+                              disabled={confirmingId === donation.id}
+                              className="w-full px-4 py-2 bg-[#367230] text-white text-sm uppercase tracking-widest hover:bg-[#244b20] transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-black"
+                            >
+                              {confirmingId === donation.id
+                                ? "Confirming..."
+                                : "Confirm Picked Up"}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2143,6 +2166,120 @@ export default function MapPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tip Modal */}
+      {donationToConfirm && (
+        <TipModal
+          isOpen={isTipModalOpen}
+          onClose={() => {
+            setIsTipModalOpen(false);
+            setDonationToConfirm(null);
+          }}
+          onConfirm={async (tipAmount: number | null) => {
+            if (!donationToConfirm || !user) return;
+
+            setConfirmingId(donationToConfirm.id);
+
+            try {
+              // Update donation status to "completed" (no tip case)
+              const { error } = await updateDonationStatus(
+                donationToConfirm.id,
+                "completed"
+              );
+
+              if (error) {
+                alert(`Failed to confirm pickup: ${error.message}`);
+                setConfirmingId(null);
+                return;
+              }
+
+              // Refresh all donation lists
+              const availableDonations = await getAvailableDonations();
+              setDonations(availableDonations);
+
+              const claimedDonations = await getDonationsClaimedByUser(user.id);
+              const threeDaysAgo = new Date();
+              threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+              const recentClaimedDonations = claimedDonations.filter(
+                (donation) => {
+                  const updatedAt = new Date(donation.updated_at);
+                  return updatedAt >= threeDaysAgo;
+                }
+              );
+              setPickingUpDonations(recentClaimedDonations);
+
+              const myDonations = await getUserDonations(user.id);
+              setUserDonations(myDonations);
+
+              // Refresh monetary donations if on connection map
+              if (isConnectionMapActive) {
+                const allMonetaryDonations = await getAllMonetaryDonations();
+                setMonetaryDonations(allMonetaryDonations);
+              }
+
+              setIsTipModalOpen(false);
+              setDonationToConfirm(null);
+              setConfirmingId(null);
+            } catch (error: any) {
+              console.error("Error confirming pickup:", error);
+              alert("Failed to confirm pickup. Please try again.");
+              setConfirmingId(null);
+            }
+          }}
+          onTipCheckout={async (tipAmount: number) => {
+            if (!donationToConfirm || !user || !userLocation) {
+              alert("Location information is missing");
+              return;
+            }
+
+            try {
+              // Create Stripe checkout session for tip
+              const response = await fetch("/api/create-tip-checkout-session", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  amount: tipAmount,
+                  userId: user.id,
+                  donationId: donationToConfirm.id,
+                  fromLatitude: userLocation[0],
+                  fromLongitude: userLocation[1],
+                  toLatitude: donationToConfirm.latitude,
+                  toLongitude: donationToConfirm.longitude,
+                }),
+              });
+
+              const data = await response.json();
+
+              if (!response.ok) {
+                throw new Error(
+                  data.error || "Failed to create checkout session"
+                );
+              }
+
+              // Redirect to Stripe checkout
+              if (data.url) {
+                window.location.href = data.url;
+              } else {
+                throw new Error("No checkout URL returned");
+              }
+            } catch (error: any) {
+              console.error("Error creating tip checkout session:", error);
+              alert("Failed to process tip payment. Please try again.");
+              throw error;
+            }
+          }}
+          donationTitle={donationToConfirm.title}
+          donationId={donationToConfirm.id}
+          userId={user?.id || null}
+          userLocation={userLocation}
+          donationLocation={[
+            donationToConfirm.latitude,
+            donationToConfirm.longitude,
+          ]}
+        />
       )}
 
       {/* Pin Click Modal */}
