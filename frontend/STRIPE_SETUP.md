@@ -16,11 +16,13 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000 # Your app's base URL (change for pro
 ## Stripe Dashboard Setup
 
 1. **Get your API keys:**
+
    - Go to https://dashboard.stripe.com/apikeys
    - Copy your "Secret key" (starts with `sk_test_` for test mode)
    - Add it to `.env.local` as `STRIPE_SECRET_KEY`
 
 2. **Set up webhook endpoint:**
+
    - Go to https://dashboard.stripe.com/webhooks
    - Click "Add endpoint"
    - Enter your webhook URL: `https://yourdomain.com/api/stripe-webhook`
@@ -57,4 +59,3 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000 # Your app's base URL (change for pro
 - [ ] Set up webhook endpoint in Stripe Dashboard with production URL
 - [ ] Test the full payment flow
 - [ ] Verify webhook is receiving events correctly
-

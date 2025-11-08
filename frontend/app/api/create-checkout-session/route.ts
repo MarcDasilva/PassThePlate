@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2025-10-29.clover",
 });
 
 export async function POST(request: NextRequest) {
@@ -16,7 +16,14 @@ export async function POST(request: NextRequest) {
       toLongitude,
     } = await request.json();
 
-    if (!amount || !userId || !fromLatitude || !fromLongitude || !toLatitude || !toLongitude) {
+    if (
+      !amount ||
+      !userId ||
+      !fromLatitude ||
+      !fromLongitude ||
+      !toLatitude ||
+      !toLongitude
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -54,8 +61,12 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin}/donation/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin}/donation/cancel`,
+      success_url: `${
+        process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin
+      }/donation/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${
+        process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin
+      }/donation/cancel`,
       metadata: {
         userId,
         fromLatitude: fromLatitude.toString(),
@@ -75,4 +86,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
