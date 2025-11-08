@@ -6,12 +6,19 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
 import { createClient } from "@/app/lib/supabase/client";
+import {
+  uploadProfilePicture,
+  deleteProfilePicture,
+} from "@/app/lib/supabase/profile";
+import { ProfilePictureUpload } from "@/app/components/ProfilePictureUpload";
 
 export default function ProfileSetupPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
   const [aboutMe, setAboutMe] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkingProfile, setCheckingProfile] = useState(true);
@@ -78,6 +85,7 @@ export default function ProfileSetupPage() {
         name: name.trim(),
         about_me: aboutMe.trim(),
         email: user.email,
+        avatar_url: avatarUrl,
       });
 
       if (insertError) {
@@ -92,6 +100,39 @@ export default function ProfileSetupPage() {
       setError("An unexpected error occurred");
       setLoading(false);
     }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) return;
+
+    setUploadingAvatar(true);
+    setError(null);
+
+    try {
+      const { data, error: uploadError } = await uploadProfilePicture(
+        user.id,
+        file
+      );
+
+      if (uploadError || !data) {
+        setError(uploadError?.message || "Failed to upload image");
+        setUploadingAvatar(false);
+        return;
+      }
+
+      setAvatarUrl(data.path);
+      setUploadingAvatar(false);
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    if (avatarUrl) {
+      await deleteProfilePicture(avatarUrl);
+    }
+    setAvatarUrl(null);
   };
 
   if (authLoading || checkingProfile) {
@@ -125,6 +166,15 @@ export default function ProfileSetupPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex justify-center">
+              <ProfilePictureUpload
+                currentAvatarUrl={avatarUrl}
+                onUpload={handleAvatarUpload}
+                onRemove={avatarUrl ? handleAvatarRemove : undefined}
+                uploading={uploadingAvatar}
+              />
+            </div>
+
             <div>
               <label
                 htmlFor="name"

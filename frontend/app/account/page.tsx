@@ -9,8 +9,11 @@ import {
   hasProfile,
   getProfile,
   upsertProfile,
+  uploadProfilePicture,
+  deleteProfilePicture,
 } from "@/app/lib/supabase/profile";
 import { Profile } from "@/app/lib/supabase/profile";
+import { ProfilePictureUpload } from "@/app/components/ProfilePictureUpload";
 
 export default function AccountPage() {
   const { user, loading, signOut } = useAuth();
@@ -20,6 +23,7 @@ export default function AccountPage() {
   const [isEditingAbout, setIsEditingAbout] = useState(false);
   const [editedAbout, setEditedAbout] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,6 +83,7 @@ export default function AccountPage() {
         name: profile.name,
         about_me: editedAbout.trim(),
         email: user.email || profile.email,
+        avatar_url: profile.avatar_url,
       });
 
       if (updateError) {
@@ -99,6 +104,94 @@ export default function AccountPage() {
     } catch (err) {
       setError("An unexpected error occurred");
       setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!user || !profile) return;
+
+    setUploadingAvatar(true);
+    setError(null);
+
+    try {
+      // Upload image to Supabase Storage
+      const { data, error: uploadError } = await uploadProfilePicture(
+        user.id,
+        file
+      );
+
+      if (uploadError || !data) {
+        setError(uploadError?.message || "Failed to upload image");
+        setUploadingAvatar(false);
+        return;
+      }
+
+      // Delete old avatar if it exists
+      if (profile.avatar_url) {
+        await deleteProfilePicture(profile.avatar_url);
+      }
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await upsertProfile(user.id, {
+        name: profile.name,
+        about_me: profile.about_me,
+        email: user.email || profile.email,
+        avatar_url: data.path,
+      });
+
+      if (updateError) {
+        setError(updateError.message || "Failed to update profile picture");
+        setUploadingAvatar(false);
+        return;
+      }
+
+      // Refresh profile data
+      const updatedProfile = await getProfile(user.id);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+      }
+
+      setUploadingAvatar(false);
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    if (!user || !profile || !profile.avatar_url) return;
+
+    setUploadingAvatar(true);
+    setError(null);
+
+    try {
+      // Delete avatar from storage
+      await deleteProfilePicture(profile.avatar_url);
+
+      // Update profile to remove avatar URL
+      const { error: updateError } = await upsertProfile(user.id, {
+        name: profile.name,
+        about_me: profile.about_me,
+        email: user.email || profile.email,
+        avatar_url: null,
+      });
+
+      if (updateError) {
+        setError(updateError.message || "Failed to remove profile picture");
+        setUploadingAvatar(false);
+        return;
+      }
+
+      // Refresh profile data
+      const updatedProfile = await getProfile(user.id);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+      }
+
+      setUploadingAvatar(false);
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setUploadingAvatar(false);
     }
   };
 
@@ -134,6 +227,15 @@ export default function AccountPage() {
                 {error}
               </div>
             )}
+
+            <div className="flex justify-center">
+              <ProfilePictureUpload
+                currentAvatarUrl={profile.avatar_url}
+                onUpload={handleAvatarUpload}
+                onRemove={profile.avatar_url ? handleAvatarRemove : undefined}
+                uploading={uploadingAvatar}
+              />
+            </div>
 
             <div>
               <label className="block text-sm uppercase tracking-widest mb-2 text-black">
