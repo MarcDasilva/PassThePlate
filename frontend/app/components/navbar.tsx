@@ -31,10 +31,7 @@ export function Navbar() {
             </Link>
           ))}
           {user && (
-            <Link
-              href={ROUTES.MAP}
-              className="text-sm uppercase tracking-widest border border-black px-5 py-2 transition-colors hover:bg-black hover:text-white"
-            >
+            <Link href={ROUTES.MAP} className={navLinkClasses}>
               Map
             </Link>
           )}
