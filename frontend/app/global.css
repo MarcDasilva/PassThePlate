@@ -126,3 +126,17 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* Achievement badge shine animation */
+@keyframes badgeShine {
+  0% {
+    transform: translateX(-100%);
+  }
+  50%, 100% {
+    transform: translateX(100%);
+  }
+}
+
+.badge-shine {
+  animation: badgeShine 3s infinite;
+}

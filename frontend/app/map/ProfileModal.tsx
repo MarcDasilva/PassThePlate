@@ -6,6 +6,7 @@ import {
   getAvatarUrl,
   Profile,
 } from "@/app/lib/supabase/profile";
+import { AchievementBadges } from "@/app/components/AchievementBadge";
 
 interface ProfileModalProps {
   userId: string;
@@ -171,17 +172,13 @@ export default function ProfileModal({
 
                 {/* Achievements */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider text-center">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">
                     Achievements
                   </h3>
                   {profile.achievements ? (
-                    <div className="text-center">
-                      <p className="text-gray-600">{profile.achievements}</p>
-                    </div>
+                    <AchievementBadges achievements={profile.achievements} />
                   ) : (
-                    <p className="text-gray-400 text-sm text-center">
-                      No achievements yet
-                    </p>
+                    <p className="text-gray-400 text-sm">No achievements yet</p>
                   )}
                 </div>
               </div>

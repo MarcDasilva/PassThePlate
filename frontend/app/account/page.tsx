@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/supabase/profile";
 import { Profile } from "@/app/lib/supabase/profile";
 import { ProfilePictureUpload } from "@/app/components/ProfilePictureUpload";
+import { AchievementBadges } from "@/app/components/AchievementBadge";
 
 export default function AccountPage() {
   const { user, loading, signOut } = useAuth();
@@ -573,11 +574,7 @@ export default function AccountPage() {
                   Achievements
                 </label>
                 {profile.achievements ? (
-                  <div className="bg-[#367230] bg-opacity-10 border border-black p-2 md:p-3">
-                    <p className="text-xs md:text-sm text-black whitespace-pre-wrap leading-relaxed">
-                      {profile.achievements}
-                    </p>
-                  </div>
+                  <AchievementBadges achievements={profile.achievements} />
                 ) : (
                   <div className="bg-gray-50 border border-black p-2 md:p-3">
                     <p className="text-sm md:text-base text-gray-500 text-center">No achievements yet</p>
