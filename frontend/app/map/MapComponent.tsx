@@ -57,6 +57,10 @@ export default function MapComponent({
   const radiusCircleRef = useRef<L.Circle | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [showDirectionsWarning, setShowDirectionsWarning] = useState(false);
+  const [directionsLocation, setDirectionsLocation] = useState<
+    [number, number] | null
+  >(null);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -261,25 +265,46 @@ export default function MapComponent({
                 )}</p>`
               : ""
           }
-          <button 
-            id="view-profile-${donation.id}" 
-            style="
-              width: 100%; 
-              padding: 8px 12px; 
-              background-color: #367230; 
-              color: white; 
-              border: none; 
-              border-radius: 4px; 
-              cursor: pointer; 
-              font-size: 14px;
-              font-weight: 500;
-              transition: background-color 0.2s;
-            "
-            onmouseover="this.style.backgroundColor='#244b20'"
-            onmouseout="this.style.backgroundColor='#367230'"
-          >
-            View Profile
-          </button>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button 
+              id="view-profile-${donation.id}" 
+              style="
+                flex: 1;
+                padding: 8px 12px; 
+                background-color: #367230; 
+                color: white; 
+                border: none; 
+                border-radius: 4px; 
+                cursor: pointer; 
+                font-size: 14px;
+                font-weight: 500;
+                transition: background-color 0.2s;
+              "
+              onmouseover="this.style.backgroundColor='#244b20'"
+              onmouseout="this.style.backgroundColor='#367230'"
+            >
+              View Profile
+            </button>
+            <button 
+              id="directions-${donation.id}" 
+              style="
+                flex: 1;
+                padding: 8px 12px; 
+                background-color: #3b82f6; 
+                color: white; 
+                border: none; 
+                border-radius: 4px; 
+                cursor: pointer; 
+                font-size: 14px;
+                font-weight: 500;
+                transition: background-color 0.2s;
+              "
+              onmouseover="this.style.backgroundColor='#2563eb'"
+              onmouseout="this.style.backgroundColor='#3b82f6'"
+            >
+              Directions
+            </button>
+          </div>
         </div>
       `;
 
@@ -298,10 +323,41 @@ export default function MapComponent({
         });
       }
 
+      // Add click handler for directions button
+      const directionsBtn = popupContent.querySelector(
+        `#directions-${donation.id}`
+      ) as HTMLButtonElement;
+      if (directionsBtn) {
+        directionsBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+
+          // Show warning modal first
+          setDirectionsLocation([donation.latitude, donation.longitude]);
+          setShowDirectionsWarning(true);
+        });
+      }
+
       marker.bindPopup(popupContent);
       donationMarkersRef.current.push(marker);
     });
   }, [donations]);
+
+  const handleDirectionsConfirm = () => {
+    if (directionsLocation) {
+      // Open Google Maps with directions to the location
+      const [lat, lng] = directionsLocation;
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      window.open(googleMapsUrl, "_blank");
+    }
+    setShowDirectionsWarning(false);
+    setDirectionsLocation(null);
+  };
+
+  const handleDirectionsCancel = () => {
+    setShowDirectionsWarning(false);
+    setDirectionsLocation(null);
+  };
 
   return (
     <>
@@ -319,6 +375,80 @@ export default function MapComponent({
             setSelectedUserId(null);
           }}
         />
+      )}
+
+      {/* Directions Warning Modal */}
+      {showDirectionsWarning && (
+        <div
+          className="fixed inset-0 z-[1001] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={handleDirectionsCancel}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 relative transition-all duration-300 scale-100 border border-gray-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-amber-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-800">
+                  Warning
+                </h3>
+              </div>
+
+              <div className="bg-amber-50 rounded-xl p-5 mb-6 border border-amber-100">
+                <ul className="space-y-3 text-gray-700">
+                  <li className="flex items-start gap-3">
+                    <span className="text-amber-600 mt-1">•</span>
+                    <span className="leading-relaxed">
+                      Do not consume tampered goods
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-amber-600 mt-1">•</span>
+                    <span className="leading-relaxed">
+                      Exercise caution when picking up items
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-amber-600 mt-1">•</span>
+                    <span className="leading-relaxed">
+                      Verify the donor's profile before picking up
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDirectionsCancel}
+                  className="flex-1 px-5 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDirectionsConfirm}
+                  className="flex-1 px-5 py-3 bg-[#3b82f6] text-white rounded-xl hover:bg-[#2563eb] transition-all font-medium text-sm shadow-md hover:shadow-lg"
+                >
+                  Get Directions
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
