@@ -542,6 +542,15 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="py-8 px-4 md:px-8 bg-black text-white">
+        <div className="container mx-auto flex justify-center items-center">
+          <p className="text-sm">
+            © 2025 PassThePlate. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }

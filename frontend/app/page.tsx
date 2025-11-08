@@ -226,17 +226,10 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-8 px-4 md:px-8 bg-black text-white">
-        <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm mb-4 md:mb-0">
-            © 2025 Swiss Design Studio. All rights reserved.
+        <div className="container mx-auto flex justify-center items-center">
+          <p className="text-sm">
+            © 2025 PassThePlate. All rights reserved.
           </p>
-          <div className="flex space-x-8">
-            {["Instagram", "Behance", "LinkedIn"].map((item) => (
-              <a key={item} href="#" className={navLinkClasses}>
-                {item}
-              </a>
-            ))}
-          </div>
         </div>
       </footer>
     </main>
