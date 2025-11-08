@@ -942,10 +942,10 @@ export default function MapPage() {
       {/* Overlay controls - positioned on top of map */}
       <div className="absolute top-24 left-2 md:top-24 md:left-4 lg:left-8 z-10">
         {/* World Map Toggle */}
-        <div className="bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 w-40 md:w-52 lg:w-64 overflow-hidden mb-2">
-          <div className="p-3 md:p-4 bg-gray-50 border-b border-gray-200">
+        <div className="bg-white border border-black w-40 md:w-52 lg:w-64 overflow-hidden mb-2">
+          <div className="p-3 md:p-4 border-b border-black">
             <label className="flex items-center justify-between cursor-pointer group">
-              <span className="text-xs md:text-sm font-medium text-gray-700">
+              <span className="text-xs md:text-sm uppercase tracking-widest text-black">
                 World Map
               </span>
               <div className="relative">
@@ -975,10 +975,10 @@ export default function MapPage() {
 
         {/* Connection Map Toggle - only show when world map is active */}
         {isWorldMapActive && (
-          <div className="bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 w-40 md:w-52 lg:w-64 overflow-hidden mb-2">
-            <div className="p-3 md:p-4 bg-gray-50 border-b border-gray-200">
+          <div className="bg-white border border-black w-40 md:w-52 lg:w-64 overflow-hidden mb-2">
+            <div className="p-3 md:p-4 border-b border-black">
               <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-xs md:text-sm font-medium text-gray-700">
+                <span className="text-xs md:text-sm uppercase tracking-widest text-black">
                   Connection Map
                 </span>
                 <div className="relative">
@@ -1009,11 +1009,11 @@ export default function MapPage() {
 
         {/* Post a Donation Menu - only show if world map is not active */}
         {!isWorldMapActive && (
-          <div className="bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 w-40 md:w-52 lg:w-64 overflow-hidden transition-all duration-300">
+          <div className="bg-white border border-black w-40 md:w-52 lg:w-64 overflow-hidden transition-all duration-300">
             {/* Caret/Arrow button at top */}
             <button
               onClick={() => setIsControlsMinimized(!isControlsMinimized)}
-              className="w-full py-2 px-3 bg-[#367230] bg-opacity-10 hover:bg-opacity-20 transition-colors flex items-center justify-center border-b border-gray-200"
+              className="w-full py-2 px-3 bg-[#367230] bg-opacity-10 hover:bg-opacity-20 transition-colors flex items-center justify-center border-b border-black"
             >
               <svg
                 className={`w-4 h-4 text-[#367230] transition-transform duration-300 ${
@@ -1042,10 +1042,10 @@ export default function MapPage() {
             >
               <div className="p-2 md:p-4 lg:p-6 space-y-2 md:space-y-3 lg:space-y-4">
                 {/* Post a Donation Button */}
-                <div className="bg-[#367230] rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 shadow-md hover:shadow-lg transition-shadow">
+                <div className="bg-[#367230] border border-black p-2 md:p-3 lg:p-4">
                   <button
                     onClick={handlePostDonation}
-                    className="w-full text-xs md:text-sm font-semibold uppercase tracking-wider text-white py-1.5 md:py-2 lg:py-3 px-2 md:px-3 lg:px-4 rounded transition-all hover:opacity-90 active:scale-95"
+                    className="w-full text-xs md:text-sm uppercase tracking-widest text-white py-1.5 md:py-2 lg:py-3 px-2 md:px-3 lg:px-4 transition-colors hover:opacity-90"
                   >
                     Post a Donation
                   </button>
@@ -1054,7 +1054,7 @@ export default function MapPage() {
                 {/* Filter Button */}
                 <button
                   onClick={handleFilter}
-                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white"
                 >
                   Filter
                 </button>
@@ -1062,7 +1062,7 @@ export default function MapPage() {
                 {/* My Postings Button */}
                 <button
                   onClick={handleMyPostings}
-                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white"
                 >
                   My Postings ({userDonations.length})
                 </button>
@@ -1070,13 +1070,13 @@ export default function MapPage() {
                 {/* Picking Up Button */}
                 <button
                   onClick={handlePickingUp}
-                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white"
                 >
                   Picking Up ({pickingUpDonations.length})
                 </button>
 
                 {/* Radius Selection Card */}
-                <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
+                <div className="bg-white p-2 md:p-3 lg:p-4 border border-black">
                   <div className="mb-2 md:mb-3">
                     <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 md:mb-2">
                       Radius:{" "}
@@ -1155,11 +1155,11 @@ export default function MapPage() {
 
         {/* Request a Donation Menu - positioned below Post a Donation menu - only show if world map is not active */}
         {!isWorldMapActive && (
-          <div className="bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 w-40 md:w-52 lg:w-64 overflow-hidden transition-all duration-300 mt-2">
+          <div className="bg-white border border-black w-40 md:w-52 lg:w-64 overflow-hidden transition-all duration-300 mt-2">
             {/* Caret/Arrow button at top */}
             <button
               onClick={() => setIsRequestMenuMinimized(!isRequestMenuMinimized)}
-              className="w-full py-2 px-3 bg-red-900 bg-opacity-10 hover:bg-opacity-20 transition-colors flex items-center justify-center border-b border-gray-200"
+              className="w-full py-2 px-3 bg-red-900 bg-opacity-10 hover:bg-opacity-20 transition-colors flex items-center justify-center border-b border-black"
             >
               <svg
                 className={`w-4 h-4 text-red-900 transition-transform duration-300 ${
@@ -1188,10 +1188,10 @@ export default function MapPage() {
             >
               <div className="p-2 md:p-4 lg:p-6 space-y-2 md:space-y-3 lg:space-y-4">
                 {/* Request a Donation Button */}
-                <div className="bg-red-900 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 shadow-md hover:shadow-lg transition-shadow">
+                <div className="bg-red-900 border border-black p-2 md:p-3 lg:p-4">
                   <button
                     onClick={handleRequestDonation}
-                    className="w-full text-xs md:text-sm font-semibold uppercase tracking-wider text-white py-1.5 md:py-2 lg:py-3 px-2 md:px-3 lg:px-4 rounded transition-all hover:opacity-90 active:scale-95"
+                    className="w-full text-xs md:text-sm uppercase tracking-widest text-white py-1.5 md:py-2 lg:py-3 px-2 md:px-3 lg:px-4 transition-colors hover:opacity-90"
                   >
                     Request a Donation
                   </button>
@@ -1200,7 +1200,7 @@ export default function MapPage() {
                 {/* Filter Button */}
                 <button
                   onClick={handleFilter}
-                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white"
                 >
                   Filter
                 </button>
@@ -1208,13 +1208,13 @@ export default function MapPage() {
                 {/* My Requests Button */}
                 <button
                   onClick={handleMyRequests}
-                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
+                  className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white"
                 >
                   My Requests ({userRequests.length})
                 </button>
 
                 {/* Radius Selection Card */}
-                <div className="bg-gray-50 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 border border-gray-200">
+                <div className="bg-white p-2 md:p-3 lg:p-4 border border-black">
                   <div className="mb-2 md:mb-3">
                     <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1 md:mb-2">
                       Radius:{" "}
