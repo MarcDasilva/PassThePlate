@@ -103,11 +103,13 @@ export function AchievementBadges({
   }
 
   return (
-    <div className={`flex flex-wrap gap-2 justify-start items-start ${className}`} style={{ margin: 0, padding: 0, width: "100%" }}>
+    <div
+      className={`flex flex-wrap gap-2 justify-start items-start ${className}`}
+      style={{ margin: 0, padding: 0, width: "100%" }}
+    >
       {achievementList.map((achievement, index) => (
         <AchievementBadge key={index} achievement={achievement} />
       ))}
     </div>
   );
 }
-

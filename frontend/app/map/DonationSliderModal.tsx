@@ -5,9 +5,10 @@ import React, { useState } from "react";
 interface DonationSliderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSend: (amount: number) => Promise<void>;
+  onSend?: (amount: number) => Promise<void>; // Optional now since we're using Stripe
   fromCoordinates: [number, number] | null;
   toCoordinates: [number, number] | null;
+  userId: string | null;
 }
 
 export default function DonationSliderModal({
@@ -16,6 +17,7 @@ export default function DonationSliderModal({
   onSend,
   fromCoordinates,
   toCoordinates,
+  userId,
 }: DonationSliderModalProps) {
   const [amount, setAmount] = useState<number>(5);
   const [isSending, setIsSending] = useState(false);
@@ -28,15 +30,44 @@ export default function DonationSliderModal({
       return;
     }
 
+    if (!userId) {
+      alert("You must be logged in to make a donation");
+      return;
+    }
+
     setIsSending(true);
     try {
-      await onSend(amount);
-      setAmount(5); // Reset to default
-      onClose();
+      // Create Stripe checkout session
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount,
+          userId,
+          fromLatitude: fromCoordinates[0],
+          fromLongitude: fromCoordinates[1],
+          toLatitude: toCoordinates[0],
+          toLongitude: toCoordinates[1],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+
+      // Redirect to Stripe checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
     } catch (error) {
-      console.error("Error sending donation:", error);
-      alert("Failed to send donation. Please try again.");
-    } finally {
+      console.error("Error creating checkout session:", error);
+      alert("Failed to process donation. Please try again.");
       setIsSending(false);
     }
   };

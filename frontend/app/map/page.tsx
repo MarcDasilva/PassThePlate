@@ -2246,21 +2246,9 @@ export default function MapPage() {
         <DonationSliderModal
           isOpen={showDonationSlider}
           onClose={() => setShowDonationSlider(false)}
-          onSend={async (amount: number) => {
-            const { error } = await createMonetaryDonation(
-              user.id,
-              userLocation[0],
-              userLocation[1],
-              selectedPinCoordinates[0],
-              selectedPinCoordinates[1],
-              amount
-            );
-            if (error) {
-              throw error;
-            }
-          }}
           fromCoordinates={userLocation}
           toCoordinates={selectedPinCoordinates}
+          userId={user.id}
         />
       )}
 

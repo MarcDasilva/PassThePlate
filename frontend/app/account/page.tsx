@@ -407,12 +407,10 @@ export default function AccountPage() {
     <main className="min-h-screen bg-[#367230]">
       <Navbar />
       <div className="pt-20 md:pt-24 pb-12 md:pb-16 px-4 md:px-6 lg:px-8 container mx-auto">
-        <div 
+        <div
           ref={contentRef}
           className={`flex flex-col lg:flex-row gap-3 lg:gap-4 max-w-5xl mx-auto transition-all duration-1000 ease-out ${
-            isVisible
-              ? "translate-y-0 opacity-100"
-              : "translate-y-10 opacity-0"
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
           }`}
         >
           {/* Main Content Card */}
@@ -424,7 +422,7 @@ export default function AccountPage() {
                 alt="Profile background"
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.style.display = "none";
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white"></div>
@@ -533,7 +531,7 @@ export default function AccountPage() {
             <h2 className="text-lg md:text-xl lg:text-xl font-bold tracking-tighter mb-4 md:mb-5 text-black uppercase">
               Stats
             </h2>
-            
+
             <div className="space-y-5 md:space-y-6 lg:space-y-6">
               {/* Rating */}
               <div className="border-b border-black pb-4 md:pb-5">
@@ -546,7 +544,9 @@ export default function AccountPage() {
                       <span className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#367230]">
                         {profile.rating.toFixed(1)}
                       </span>
-                      <span className="text-sm md:text-base text-gray-500">/ 5.0</span>
+                      <span className="text-sm md:text-base text-gray-500">
+                        / 5.0
+                      </span>
                     </div>
                     <div className="flex gap-1">
                       {[...Array(5)].map((_, i) => (
@@ -564,7 +564,9 @@ export default function AccountPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm md:text-base text-gray-500">No rating yet</p>
+                  <p className="text-sm md:text-base text-gray-500">
+                    No rating yet
+                  </p>
                 )}
               </div>
 
@@ -577,7 +579,9 @@ export default function AccountPage() {
                   <AchievementBadges achievements={profile.achievements} />
                 ) : (
                   <div className="bg-gray-50 border border-black p-2 md:p-3">
-                    <p className="text-sm md:text-base text-gray-500 text-center">No achievements yet</p>
+                    <p className="text-sm md:text-base text-gray-500 text-center">
+                      No achievements yet
+                    </p>
                   </div>
                 )}
               </div>
@@ -589,9 +593,7 @@ export default function AccountPage() {
       {/* Footer */}
       <footer className="py-8 px-4 md:px-8 bg-black text-white">
         <div className="container mx-auto flex justify-center items-center">
-          <p className="text-sm">
-            © 2025 PassThePlate. All rights reserved.
-          </p>
+          <p className="text-sm">© 2025 PassThePlate. All rights reserved.</p>
         </div>
       </footer>
     </main>
