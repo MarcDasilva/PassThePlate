@@ -3,7 +3,7 @@
 import React from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
@@ -145,6 +145,7 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
       requests: Request[];
     }>
   >([]);
+  const controlsInitializedRef = useRef(false);
 
   useEffect(() => {
     // Generate grey dots symmetrically across the background
@@ -164,20 +165,21 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
     setDots(generatedDots);
   }, []);
 
-  useEffect(() => {
-    // Group requests by location and create pins
+  // Memoize pins to prevent unnecessary recalculations
+  const memoizedPins = useMemo(() => {
     if (requests.length > 0) {
-      const groupedRequests = groupRequestsByLocation(requests);
-      setPins(groupedRequests);
-    } else {
-      setPins([]);
+      return groupRequestsByLocation(requests);
     }
+    return [];
   }, [requests]);
 
   useEffect(() => {
-    if (globeRef.current) {
+    setPins(memoizedPins);
+  }, [memoizedPins]);
+
+  useEffect(() => {
+    if (globeRef.current && !controlsInitializedRef.current) {
       const controls = globeRef.current.controls();
-      const camera = globeRef.current.camera();
       // Enable auto-rotate
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.5;
@@ -187,8 +189,103 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
       controls.maxDistance = 2000;
       // Make zoom more sensitive for better control
       controls.zoomSpeed = 1.2;
+      controlsInitializedRef.current = true;
     }
   }, []);
+
+  // Memoize the htmlElement function to prevent recreating all elements on every render
+  const htmlElement = useCallback(
+    (d: any) => {
+      // Calculate max count for intensity scaling
+      const maxCount = Math.max(...pins.map((p) => p.count), 1);
+      const intensity = maxCount > 0 ? d.count / maxCount : 0;
+
+      // Scale red intensity based on request count (0.3 to 1.0)
+      const minIntensity = 0.3;
+      const maxIntensity = 1.0;
+      const scaledIntensity =
+        minIntensity + (maxIntensity - minIntensity) * intensity;
+
+      // Calculate opacity values based on intensity
+      const centerOpacity = 0.4 + 0.4 * intensity; // 0.4 to 0.8
+      const gradientCenter = 0.5 + 0.3 * intensity; // 0.5 to 0.8
+      const gradient30 = 0.3 + 0.2 * intensity; // 0.3 to 0.5
+      const gradient60 = 0.15 + 0.15 * intensity; // 0.15 to 0.3
+
+      const el = document.createElement("div");
+      el.style.width = "50px";
+      el.style.height = "50px";
+      el.style.cursor = "pointer";
+      el.style.position = "relative";
+      el.style.pointerEvents = "auto";
+      el.style.zIndex = "1000";
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.justifyContent = "center";
+      el.innerHTML = `
+        <div style="
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(220, 38, 38, ${gradientCenter}) 0%, rgba(220, 38, 38, ${gradient30}) 30%, rgba(220, 38, 38, ${gradient60}) 60%, rgba(220, 38, 38, 0) 100%);
+          pointer-events: none;
+          position: relative;
+        ">
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(220, 38, 38, ${centerOpacity});
+            box-shadow: 0 0 4px rgba(220, 38, 38, ${centerOpacity * 0.5});
+          "></div>
+        </div>
+      `;
+
+      // Store the data in the element for access in the click handler
+      (el as any).__data = d;
+
+      // Use addEventListener with capture phase to ensure it fires
+      const clickHandler = (e: Event) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const data = (e.currentTarget as any).__data;
+        if (onPinClick && data) {
+          onPinClick(data.count, data.requests, [data.lat, data.lng]);
+        }
+      };
+
+      // Try multiple event types to ensure clicks work
+      el.addEventListener("click", clickHandler, true);
+      el.addEventListener(
+        "mousedown",
+        (e) => {
+          e.stopPropagation();
+        },
+        true
+      );
+
+      // Also try touch events for mobile
+      el.addEventListener(
+        "touchend",
+        (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const data = (e.currentTarget as any).__data;
+          if (onPinClick && data) {
+            onPinClick(data.count, data.requests, [data.lat, data.lng]);
+          }
+        },
+        true
+      );
+
+      return el;
+    },
+    [pins, onPinClick]
+  );
 
   return (
     <div className="relative w-full h-full bg-black">
@@ -219,95 +316,7 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
           htmlElementsData={pins}
           htmlLat="lat"
           htmlLng="lng"
-          htmlElement={(d: any) => {
-            // Calculate max count for intensity scaling
-            const maxCount = Math.max(...pins.map((p) => p.count), 1);
-            const intensity = maxCount > 0 ? d.count / maxCount : 0;
-
-            // Scale red intensity based on request count (0.3 to 1.0)
-            const minIntensity = 0.3;
-            const maxIntensity = 1.0;
-            const scaledIntensity =
-              minIntensity + (maxIntensity - minIntensity) * intensity;
-
-            // Calculate opacity values based on intensity
-            const centerOpacity = 0.4 + 0.4 * intensity; // 0.4 to 0.8
-            const gradientCenter = 0.5 + 0.3 * intensity; // 0.5 to 0.8
-            const gradient30 = 0.3 + 0.2 * intensity; // 0.3 to 0.5
-            const gradient60 = 0.15 + 0.15 * intensity; // 0.15 to 0.3
-
-            const el = document.createElement("div");
-            el.style.width = "50px";
-            el.style.height = "50px";
-            el.style.cursor = "pointer";
-            el.style.position = "relative";
-            el.style.pointerEvents = "auto";
-            el.style.zIndex = "1000";
-            el.style.display = "flex";
-            el.style.alignItems = "center";
-            el.style.justifyContent = "center";
-            el.innerHTML = `
-              <div style="
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                background: radial-gradient(circle, rgba(220, 38, 38, ${gradientCenter}) 0%, rgba(220, 38, 38, ${gradient30}) 30%, rgba(220, 38, 38, ${gradient60}) 60%, rgba(220, 38, 38, 0) 100%);
-                pointer-events: none;
-                position: relative;
-              ">
-                <div style="
-                  position: absolute;
-                  top: 50%;
-                  left: 50%;
-                  transform: translate(-50%, -50%);
-                  width: 4px;
-                  height: 4px;
-                  border-radius: 50%;
-                  background: rgba(220, 38, 38, ${centerOpacity});
-                  box-shadow: 0 0 4px rgba(220, 38, 38, ${centerOpacity * 0.5});
-                "></div>
-              </div>
-            `;
-
-            // Store the data in the element for access in the click handler
-            (el as any).__data = d;
-
-            // Use addEventListener with capture phase to ensure it fires
-            const clickHandler = (e: Event) => {
-              e.stopPropagation();
-              e.preventDefault();
-              const data = (e.currentTarget as any).__data;
-              if (onPinClick && data) {
-                onPinClick(data.count, data.requests, [data.lat, data.lng]);
-              }
-            };
-
-            // Try multiple event types to ensure clicks work
-            el.addEventListener("click", clickHandler, true);
-            el.addEventListener(
-              "mousedown",
-              (e) => {
-                e.stopPropagation();
-              },
-              true
-            );
-
-            // Also try touch events for mobile
-            el.addEventListener(
-              "touchend",
-              (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                const data = (e.currentTarget as any).__data;
-                if (onPinClick && data) {
-                  onPinClick(data.count, data.requests, [data.lat, data.lng]);
-                }
-              },
-              true
-            );
-
-            return el;
-          }}
+          htmlElement={htmlElement}
         />
       </div>
     </div>
@@ -350,8 +359,11 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
   const [shuffledDonations, setShuffledDonations] = useState<
     MonetaryDonation[]
   >([]);
+  const [locationNamesLoaded, setLocationNamesLoaded] = useState(false);
+  const [scrollReady, setScrollReady] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const horizontalScrollRef = useRef<HTMLDivElement>(null);
+  const controlsInitializedRef = useRef(false);
 
   useEffect(() => {
     // Generate grey dots symmetrically across the background
@@ -371,15 +383,15 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
   }, []);
 
   useEffect(() => {
-    if (globeRef.current) {
+    if (globeRef.current && !controlsInitializedRef.current) {
       const controls = globeRef.current.controls();
-      const camera = globeRef.current.camera();
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.5;
       controls.enableZoom = true;
       controls.minDistance = 100;
       controls.maxDistance = 2000;
       controls.zoomSpeed = 1.2;
+      controlsInitializedRef.current = true;
     }
   }, []);
 
@@ -394,11 +406,13 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
   // Fetch location names for all donations
   useEffect(() => {
     const fetchLocationNames = async () => {
+      setLocationNamesLoaded(false);
       const newLocationNames = new Map<string, { from: string; to: string }>();
 
-      for (const donation of shuffledDonations.length > 0
-        ? shuffledDonations
-        : donations) {
+      const donationsToProcess =
+        shuffledDonations.length > 0 ? shuffledDonations : donations;
+
+      for (const donation of donationsToProcess) {
         const [fromName, toName] = await Promise.all([
           getLocationName(donation.from_latitude, donation.from_longitude),
           getLocationName(donation.to_latitude, donation.to_longitude),
@@ -408,6 +422,12 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
       }
 
       setLocationNames(newLocationNames);
+      // Wait for next frame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setLocationNamesLoaded(true);
+        });
+      });
     };
 
     if (shuffledDonations.length > 0 || donations.length > 0) {
@@ -419,129 +439,171 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
   useEffect(() => {
     if (
       !scrollContainerRef.current ||
-      (shuffledDonations.length === 0 && donations.length === 0)
-    )
+      (shuffledDonations.length === 0 && donations.length === 0) ||
+      !locationNamesLoaded
+    ) {
+      setScrollReady(false);
       return;
+    }
 
     const container = scrollContainerRef.current;
     let scrollPosition = 0;
     const scrollSpeed = 0.25; // pixels per frame
     let firstSetHeight = 0;
-    let animationFrameId: number;
-    let isInitialized = false;
+    let animationFrameId: number | null = null;
+    let stableFrames = 0;
+    const REQUIRED_STABLE_FRAMES = 3; // Wait for 3 stable frames before starting
 
     // Calculate height of first set of items (before duplicates)
-    const calculateFirstSetHeight = () => {
+    const calculateFirstSetHeight = (): number => {
       const content = container.querySelector("div.space-y-3");
       if (content) {
         const children = Array.from(content.children);
         const halfPoint = Math.ceil(children.length / 2);
-        firstSetHeight = 0;
+        let height = 0;
         for (let i = 0; i < halfPoint; i++) {
           const child = children[i] as HTMLElement;
-          firstSetHeight += child.offsetHeight + 12; // 12px for gap (space-y-3)
+          height += child.offsetHeight + 12; // 12px for gap (space-y-3)
         }
-        return firstSetHeight > 0;
+        return height;
       }
-      return false;
+      return 0;
     };
 
-    // Wait for content to render and location names to load
-    const initScroll = () => {
-      if (calculateFirstSetHeight()) {
-        isInitialized = true;
-        const scroll = () => {
-          scrollPosition += scrollSpeed;
+    // Wait for DOM to stabilize before starting scroll
+    const checkStability = () => {
+      const currentHeight = calculateFirstSetHeight();
 
-          // Reset when we've scrolled through the first set (seamless loop)
-          if (scrollPosition >= firstSetHeight) {
-            scrollPosition = scrollPosition - firstSetHeight;
+      if (currentHeight > 0) {
+        // Check if height is stable
+        if (currentHeight === firstSetHeight) {
+          stableFrames++;
+          if (stableFrames >= REQUIRED_STABLE_FRAMES) {
+            // Start smooth scrolling
+            firstSetHeight = currentHeight;
+            setScrollReady(true);
+            const scroll = () => {
+              scrollPosition += scrollSpeed;
+
+              // Reset when we've scrolled through the first set (seamless loop)
+              if (scrollPosition >= firstSetHeight) {
+                scrollPosition = scrollPosition - firstSetHeight;
+              }
+
+              container.scrollTop = scrollPosition;
+              animationFrameId = requestAnimationFrame(scroll);
+            };
+
+            animationFrameId = requestAnimationFrame(scroll);
+            return;
           }
-
-          container.scrollTop = scrollPosition;
-          animationFrameId = requestAnimationFrame(scroll);
-        };
-
-        animationFrameId = requestAnimationFrame(scroll);
-      } else {
-        // Retry if not ready
-        setTimeout(initScroll, 100);
+        } else {
+          stableFrames = 0;
+          firstSetHeight = currentHeight;
+        }
       }
+
+      // Continue checking stability
+      animationFrameId = requestAnimationFrame(checkStability);
     };
 
-    // Wait a bit for DOM to be ready
-    setTimeout(initScroll, 300);
+    // Start checking after a brief delay to ensure DOM is ready
+    setTimeout(() => {
+      firstSetHeight = calculateFirstSetHeight();
+      animationFrameId = requestAnimationFrame(checkStability);
+    }, 100);
 
     return () => {
-      if (animationFrameId) {
+      if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [shuffledDonations, donations, locationNames]);
+  }, [shuffledDonations, donations, locationNames, locationNamesLoaded]);
 
   // Auto-scroll for horizontal list (small screens)
   useEffect(() => {
     if (
       !horizontalScrollRef.current ||
-      (shuffledDonations.length === 0 && donations.length === 0)
-    )
+      (shuffledDonations.length === 0 && donations.length === 0) ||
+      !locationNamesLoaded
+    ) {
+      setScrollReady(false);
       return;
+    }
 
     const container = horizontalScrollRef.current;
     let scrollPosition = 0;
     const scrollSpeed = 0.25; // pixels per frame
     let firstSetWidth = 0;
-    let animationFrameId: number;
-    let isInitialized = false;
+    let animationFrameId: number | null = null;
+    let stableFrames = 0;
+    const REQUIRED_STABLE_FRAMES = 3; // Wait for 3 stable frames before starting
 
     // Calculate width of first set of items (before duplicates)
-    const calculateFirstSetWidth = () => {
+    const calculateFirstSetWidth = (): number => {
       const content = container.querySelector("div.flex.gap-3");
       if (content) {
         const children = Array.from(content.children);
         const halfPoint = Math.ceil(children.length / 2);
-        firstSetWidth = 0;
+        let width = 0;
         for (let i = 0; i < halfPoint; i++) {
           const child = children[i] as HTMLElement;
-          firstSetWidth += child.offsetWidth + 12; // 12px for gap (gap-3)
+          width += child.offsetWidth + 12; // 12px for gap (gap-3)
         }
-        return firstSetWidth > 0;
+        return width;
       }
-      return false;
+      return 0;
     };
 
-    // Wait for content to render and location names to load
-    const initScroll = () => {
-      if (calculateFirstSetWidth()) {
-        isInitialized = true;
-        const scroll = () => {
-          scrollPosition += scrollSpeed;
+    // Wait for DOM to stabilize before starting scroll
+    const checkStability = () => {
+      const currentWidth = calculateFirstSetWidth();
 
-          // Reset when we've scrolled through the first set (seamless loop)
-          if (scrollPosition >= firstSetWidth) {
-            scrollPosition = scrollPosition - firstSetWidth;
+      if (currentWidth > 0) {
+        // Check if width is stable
+        if (currentWidth === firstSetWidth) {
+          stableFrames++;
+          if (stableFrames >= REQUIRED_STABLE_FRAMES) {
+            // Start smooth scrolling
+            firstSetWidth = currentWidth;
+            setScrollReady(true);
+            const scroll = () => {
+              scrollPosition += scrollSpeed;
+
+              // Reset when we've scrolled through the first set (seamless loop)
+              if (scrollPosition >= firstSetWidth) {
+                scrollPosition = scrollPosition - firstSetWidth;
+              }
+
+              container.scrollLeft = scrollPosition;
+              animationFrameId = requestAnimationFrame(scroll);
+            };
+
+            animationFrameId = requestAnimationFrame(scroll);
+            return;
           }
-
-          container.scrollLeft = scrollPosition;
-          animationFrameId = requestAnimationFrame(scroll);
-        };
-
-        animationFrameId = requestAnimationFrame(scroll);
-      } else {
-        // Retry if not ready
-        setTimeout(initScroll, 100);
+        } else {
+          stableFrames = 0;
+          firstSetWidth = currentWidth;
+        }
       }
+
+      // Continue checking stability
+      animationFrameId = requestAnimationFrame(checkStability);
     };
 
-    // Wait a bit for DOM to be ready
-    setTimeout(initScroll, 300);
+    // Start checking after a brief delay to ensure DOM is ready
+    setTimeout(() => {
+      firstSetWidth = calculateFirstSetWidth();
+      animationFrameId = requestAnimationFrame(checkStability);
+    }, 100);
 
     return () => {
-      if (animationFrameId) {
+      if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [shuffledDonations, donations, locationNames]);
+  }, [shuffledDonations, donations, locationNames, locationNamesLoaded]);
 
   // Generate random color function
   const getRandomColor = (seed: number) => {
@@ -626,66 +688,72 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
           {/* Large screens - Right side, vertical auto-scroll */}
           <div className="hidden lg:block absolute top-0 right-0 h-full w-80 z-10 pointer-events-none">
             <div
-              ref={scrollContainerRef}
-              className="h-full overflow-y-auto p-4 scrollbar-hide pointer-events-none"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              className={`h-full border border-black bg-transparent p-4 transition-opacity duration-1000 ${
+                scrollReady ? "opacity-100" : "opacity-0"
+              }`}
             >
-              <div className="space-y-3">
-                {(shuffledDonations.length > 0
-                  ? shuffledDonations
-                  : donations
-                ).map((donation) => {
-                  const location = locationNames.get(donation.id);
-                  return (
-                    <div
-                      key={donation.id}
-                      className="bg-white border border-black p-3 text-black"
-                    >
-                      <div className="text-xs mb-1">
-                        <span className="font-semibold">From:</span>{" "}
-                        {location?.from ||
-                          `${donation.from_latitude.toFixed(
-                            4
-                          )}, ${donation.from_longitude.toFixed(4)}`}
+              <div
+                ref={scrollContainerRef}
+                className="h-full overflow-y-auto scrollbar-hide pointer-events-none"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                <div className="space-y-3">
+                  {(shuffledDonations.length > 0
+                    ? shuffledDonations
+                    : donations
+                  ).map((donation) => {
+                    const location = locationNames.get(donation.id);
+                    return (
+                      <div
+                        key={donation.id}
+                        className="bg-white border border-black p-3 text-black"
+                      >
+                        <div className="text-xs mb-1">
+                          <span className="font-semibold">From:</span>{" "}
+                          {location?.from ||
+                            `${donation.from_latitude.toFixed(
+                              4
+                            )}, ${donation.from_longitude.toFixed(4)}`}
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-semibold">To:</span>{" "}
+                          {location?.to ||
+                            `${donation.to_latitude.toFixed(
+                              4
+                            )}, ${donation.to_longitude.toFixed(4)}`}
+                        </div>
                       </div>
-                      <div className="text-xs">
-                        <span className="font-semibold">To:</span>{" "}
-                        {location?.to ||
-                          `${donation.to_latitude.toFixed(
-                            4
-                          )}, ${donation.to_longitude.toFixed(4)}`}
+                    );
+                  })}
+                  {/* Duplicate items for seamless loop */}
+                  {(shuffledDonations.length > 0
+                    ? shuffledDonations
+                    : donations
+                  ).map((donation) => {
+                    const location = locationNames.get(donation.id);
+                    return (
+                      <div
+                        key={`duplicate-${donation.id}`}
+                        className="bg-white border border-black p-3 text-black"
+                      >
+                        <div className="text-xs mb-1">
+                          <span className="font-semibold">From:</span>{" "}
+                          {location?.from ||
+                            `${donation.from_latitude.toFixed(
+                              4
+                            )}, ${donation.from_longitude.toFixed(4)}`}
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-semibold">To:</span>{" "}
+                          {location?.to ||
+                            `${donation.to_latitude.toFixed(
+                              4
+                            )}, ${donation.to_longitude.toFixed(4)}`}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-                {/* Duplicate items for seamless loop */}
-                {(shuffledDonations.length > 0
-                  ? shuffledDonations
-                  : donations
-                ).map((donation) => {
-                  const location = locationNames.get(donation.id);
-                  return (
-                    <div
-                      key={`duplicate-${donation.id}`}
-                      className="bg-white border border-black p-3 text-black"
-                    >
-                      <div className="text-xs mb-1">
-                        <span className="font-semibold">From:</span>{" "}
-                        {location?.from ||
-                          `${donation.from_latitude.toFixed(
-                            4
-                          )}, ${donation.from_longitude.toFixed(4)}`}
-                      </div>
-                      <div className="text-xs">
-                        <span className="font-semibold">To:</span>{" "}
-                        {location?.to ||
-                          `${donation.to_latitude.toFixed(
-                            4
-                          )}, ${donation.to_longitude.toFixed(4)}`}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -693,66 +761,72 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
           {/* Small screens - Bottom, horizontal auto-scroll */}
           <div className="lg:hidden absolute bottom-0 left-0 right-0 h-32 z-10 pointer-events-none">
             <div
-              ref={horizontalScrollRef}
-              className="h-full overflow-x-auto p-4 scrollbar-hide pointer-events-none"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              className={`h-full border border-black bg-transparent p-4 transition-opacity duration-1000 ${
+                scrollReady ? "opacity-100" : "opacity-0"
+              }`}
             >
-              <div className="flex gap-3">
-                {(shuffledDonations.length > 0
-                  ? shuffledDonations
-                  : donations
-                ).map((donation) => {
-                  const location = locationNames.get(donation.id);
-                  return (
-                    <div
-                      key={donation.id}
-                      className="flex-shrink-0 w-48 bg-white border border-black p-3 text-black"
-                    >
-                      <div className="text-xs mb-1">
-                        <span className="font-semibold">From:</span>{" "}
-                        {location?.from ||
-                          `${donation.from_latitude.toFixed(
-                            4
-                          )}, ${donation.from_longitude.toFixed(4)}`}
+              <div
+                ref={horizontalScrollRef}
+                className="h-full overflow-x-auto scrollbar-hide pointer-events-none"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                <div className="flex gap-3">
+                  {(shuffledDonations.length > 0
+                    ? shuffledDonations
+                    : donations
+                  ).map((donation) => {
+                    const location = locationNames.get(donation.id);
+                    return (
+                      <div
+                        key={donation.id}
+                        className="flex-shrink-0 w-48 bg-white border border-black p-3 text-black"
+                      >
+                        <div className="text-xs mb-1">
+                          <span className="font-semibold">From:</span>{" "}
+                          {location?.from ||
+                            `${donation.from_latitude.toFixed(
+                              4
+                            )}, ${donation.from_longitude.toFixed(4)}`}
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-semibold">To:</span>{" "}
+                          {location?.to ||
+                            `${donation.to_latitude.toFixed(
+                              4
+                            )}, ${donation.to_longitude.toFixed(4)}`}
+                        </div>
                       </div>
-                      <div className="text-xs">
-                        <span className="font-semibold">To:</span>{" "}
-                        {location?.to ||
-                          `${donation.to_latitude.toFixed(
-                            4
-                          )}, ${donation.to_longitude.toFixed(4)}`}
+                    );
+                  })}
+                  {/* Duplicate items for seamless loop */}
+                  {(shuffledDonations.length > 0
+                    ? shuffledDonations
+                    : donations
+                  ).map((donation) => {
+                    const location = locationNames.get(donation.id);
+                    return (
+                      <div
+                        key={`duplicate-${donation.id}`}
+                        className="flex-shrink-0 w-48 bg-white border border-black p-3 text-black"
+                      >
+                        <div className="text-xs mb-1">
+                          <span className="font-semibold">From:</span>{" "}
+                          {location?.from ||
+                            `${donation.from_latitude.toFixed(
+                              4
+                            )}, ${donation.from_longitude.toFixed(4)}`}
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-semibold">To:</span>{" "}
+                          {location?.to ||
+                            `${donation.to_latitude.toFixed(
+                              4
+                            )}, ${donation.to_longitude.toFixed(4)}`}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-                {/* Duplicate items for seamless loop */}
-                {(shuffledDonations.length > 0
-                  ? shuffledDonations
-                  : donations
-                ).map((donation) => {
-                  const location = locationNames.get(donation.id);
-                  return (
-                    <div
-                      key={`duplicate-${donation.id}`}
-                      className="flex-shrink-0 w-48 bg-white border border-black p-3 text-black"
-                    >
-                      <div className="text-xs mb-1">
-                        <span className="font-semibold">From:</span>{" "}
-                        {location?.from ||
-                          `${donation.from_latitude.toFixed(
-                            4
-                          )}, ${donation.from_longitude.toFixed(4)}`}
-                      </div>
-                      <div className="text-xs">
-                        <span className="font-semibold">To:</span>{" "}
-                        {location?.to ||
-                          `${donation.to_latitude.toFixed(
-                            4
-                          )}, ${donation.to_longitude.toFixed(4)}`}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -1165,6 +1239,17 @@ export default function MapPage() {
     return R * c;
   };
 
+  // Memoize the pin click handler to prevent unnecessary re-renders
+  const handlePinClick = useCallback(
+    (count: number, pinRequests: Request[], coordinates: [number, number]) => {
+      setSelectedPinCount(count);
+      setSelectedPinRequests(pinRequests);
+      setSelectedPinCoordinates(coordinates);
+      setShowPinModal(true);
+    },
+    []
+  );
+
   if (loading || checkingProfile) {
     return (
       <main className="min-h-screen bg-[#367230] flex items-center justify-center">
@@ -1233,15 +1318,7 @@ export default function MapPage() {
       {/* World Map Globe - shown when toggle is active and connection map is not active */}
       {isWorldMapActive && !isConnectionMapActive && (
         <div className="absolute inset-0 w-full h-full z-0 bg-black">
-          <WorldGlobe
-            requests={requests}
-            onPinClick={(count, pinRequests, coordinates) => {
-              setSelectedPinCount(count);
-              setSelectedPinRequests(pinRequests);
-              setSelectedPinCoordinates(coordinates);
-              setShowPinModal(true);
-            }}
-          />
+          <WorldGlobe requests={requests} onPinClick={handlePinClick} />
         </div>
       )}
 
