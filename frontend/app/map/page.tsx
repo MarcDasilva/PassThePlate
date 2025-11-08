@@ -209,9 +209,25 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
           htmlLat="lat"
           htmlLng="lng"
           htmlElement={(d: any) => {
+            // Calculate max count for intensity scaling
+            const maxCount = Math.max(...pins.map((p) => p.count), 1);
+            const intensity = maxCount > 0 ? d.count / maxCount : 0;
+
+            // Scale red intensity based on request count (0.3 to 1.0)
+            const minIntensity = 0.3;
+            const maxIntensity = 1.0;
+            const scaledIntensity =
+              minIntensity + (maxIntensity - minIntensity) * intensity;
+
+            // Calculate opacity values based on intensity
+            const centerOpacity = 0.4 + 0.4 * intensity; // 0.4 to 0.8
+            const gradientCenter = 0.5 + 0.3 * intensity; // 0.5 to 0.8
+            const gradient30 = 0.3 + 0.2 * intensity; // 0.3 to 0.5
+            const gradient60 = 0.15 + 0.15 * intensity; // 0.15 to 0.3
+
             const el = document.createElement("div");
-            el.style.width = "30px";
-            el.style.height = "40px";
+            el.style.width = "50px";
+            el.style.height = "50px";
             el.style.cursor = "pointer";
             el.style.position = "relative";
             el.style.pointerEvents = "auto";
@@ -220,14 +236,26 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
             el.style.alignItems = "center";
             el.style.justifyContent = "center";
             el.innerHTML = `
-              <svg width="30" height="40" viewBox="0 0 30 40" style="
-                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+              <div style="
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(220, 38, 38, ${gradientCenter}) 0%, rgba(220, 38, 38, ${gradient30}) 30%, rgba(220, 38, 38, ${gradient60}) 60%, rgba(220, 38, 38, 0) 100%);
                 pointer-events: none;
+                position: relative;
               ">
-                <path d="M15 0C6.716 0 0 6.716 0 15c0 8.284 15 25 15 25s15-16.716 15-25C30 6.716 23.284 0 15 0z" fill="#dc2626"/>
-                <circle cx="15" cy="15" r="6" fill="white"/>
-                <text x="15" y="19" text-anchor="middle" font-size="10" font-weight="bold" fill="#dc2626">${d.count}</text>
-              </svg>
+                <div style="
+                  position: absolute;
+                  top: 50%;
+                  left: 50%;
+                  transform: translate(-50%, -50%);
+                  width: 4px;
+                  height: 4px;
+                  border-radius: 50%;
+                  background: rgba(220, 38, 38, ${centerOpacity});
+                  box-shadow: 0 0 4px rgba(220, 38, 38, ${centerOpacity * 0.5});
+                "></div>
+              </div>
             `;
 
             // Store the data in the element for access in the click handler
