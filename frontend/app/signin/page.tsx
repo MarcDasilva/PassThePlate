@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Navbar } from "@/app/components/navbar";
@@ -13,8 +13,21 @@ export default function SignInPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const {
+    signIn,
+    signUp,
+    signInWithGoogle,
+    user,
+    loading: authLoading,
+  } = useAuth();
   const router = useRouter();
+
+  // Redirect to dashboard if user is already authenticated
+  useEffect(() => {
+    if (!authLoading && user) {
+      window.location.href = ROUTES.DASHBOARD;
+    }
+  }, [user, authLoading]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,22 +46,24 @@ export default function SignInPage() {
 
       setLoading(true);
       const { error } = await signUp(email, password);
-      setLoading(false);
 
       if (error) {
+        setLoading(false);
         setError(error.message);
       } else {
-        router.push(ROUTES.DASHBOARD);
+        // Redirect immediately after successful signup
+        window.location.href = ROUTES.DASHBOARD;
       }
     } else {
       setLoading(true);
       const { error } = await signIn(email, password);
-      setLoading(false);
 
       if (error) {
+        setLoading(false);
         setError(error.message);
       } else {
-        router.push(ROUTES.DASHBOARD);
+        // Redirect immediately after successful signin
+        window.location.href = ROUTES.DASHBOARD;
       }
     }
   };

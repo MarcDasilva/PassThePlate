@@ -3,6 +3,7 @@
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { ROUTES } from "@/app/lib/routes";
 
 export default function DashboardPage() {
   const { user, loading, signOut } = useAuth();
@@ -10,13 +11,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/signin");
+      router.push(ROUTES.SIGN_IN);
     }
   }, [user, loading, router]);
 
   const handleLogout = async () => {
     await signOut();
-    router.push("/signin");
+    router.push(ROUTES.SIGN_IN);
   };
 
   if (loading) {
