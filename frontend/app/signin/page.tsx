@@ -58,7 +58,7 @@ export default function SignInPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#367230] font-[Times_New_Roman]">
+    <main className="min-h-screen bg-[#367230]">
       <Navbar />
       <div className="pt-32 pb-20 px-4 md:px-8 container mx-auto">
         <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">

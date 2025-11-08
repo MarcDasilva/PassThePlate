@@ -24,7 +24,7 @@ const projects = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#367230] font-[Times_New_Roman]">
+    <main className="min-h-screen bg-[#367230]">
       {/* Navigation */}
       <Navbar />
 
