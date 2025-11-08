@@ -271,19 +271,18 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
           htmlElement={(d: any) => {
             // Calculate max count for intensity scaling
             const maxCount = Math.max(...pins.map((p) => p.count), 1);
+            const isMax = d.count === maxCount;
+
+            // Opacity depends on whether this pin has the max count
+            // Max count pins have full opacity (1.0), others scale based on ratio
             const intensity = maxCount > 0 ? d.count / maxCount : 0;
+            const opacity = isMax ? 1.0 : Math.max(0.3, intensity * 0.7 + 0.3);
 
-            // Scale red intensity based on request count (0.3 to 1.0)
-            const minIntensity = 0.3;
-            const maxIntensity = 1.0;
-            const scaledIntensity =
-              minIntensity + (maxIntensity - minIntensity) * intensity;
-
-            // Calculate opacity values based on intensity
-            const centerOpacity = 0.4 + 0.4 * intensity; // 0.4 to 0.8
-            const gradientCenter = 0.5 + 0.3 * intensity; // 0.5 to 0.8
-            const gradient30 = 0.3 + 0.2 * intensity; // 0.3 to 0.5
-            const gradient60 = 0.15 + 0.15 * intensity; // 0.15 to 0.3
+            // Calculate opacity values based on whether it's the max
+            const centerOpacity = opacity; // Full opacity for max, scaled for others
+            const gradientCenter = opacity * 0.8;
+            const gradient30 = opacity * 0.5;
+            const gradient60 = opacity * 0.3;
 
             const el = document.createElement("div");
             el.style.width = "50px";
@@ -1020,7 +1019,7 @@ export default function MapPage() {
   const [selectedPinCount, setSelectedPinCount] = useState<number>(0);
   const [selectedPinRequests, setSelectedPinRequests] = useState<Request[]>([]);
   const [maxPinCount, setMaxPinCount] = useState<number>(0);
-  const [barAnimated, setBarAnimated] = useState(false);
+  const [locationName, setLocationName] = useState<string | null>(null);
   const [showDonationSlider, setShowDonationSlider] = useState(false);
   const [selectedPinCoordinates, setSelectedPinCoordinates] = useState<
     [number, number] | null
@@ -1447,7 +1446,7 @@ export default function MapPage() {
         <div className="absolute inset-0 w-full h-full z-0 bg-black">
           <WorldGlobe
             requests={requests}
-            onPinClick={(count, pinRequests, coordinates) => {
+            onPinClick={async (count, pinRequests, coordinates) => {
               // Calculate max count from all grouped requests
               const groupedRequests = groupRequestsByLocation(requests);
               const maxCount = Math.max(
@@ -1458,10 +1457,23 @@ export default function MapPage() {
               setSelectedPinRequests(pinRequests);
               setSelectedPinCoordinates(coordinates);
               setMaxPinCount(maxCount);
-              setBarAnimated(false);
+
+              // Fetch location name first, then show modal
+              try {
+                const name = await getOrCreateLocationName(
+                  coordinates[0],
+                  coordinates[1]
+                );
+                // Extract country from location name (usually last part after comma)
+                const country = name.split(",").pop()?.trim() || name;
+                setLocationName(country);
+              } catch (error) {
+                console.error("Error fetching location name:", error);
+                setLocationName(null);
+              }
+
+              // Show modal after location name is fetched
               setShowPinModal(true);
-              // Trigger animation after modal opens
-              setTimeout(() => setBarAnimated(true), 100);
             }}
           />
         </div>
@@ -2289,17 +2301,17 @@ export default function MapPage() {
       {/* Pin Click Modal */}
       {showPinModal && (
         <div
-          className="fixed inset-0 z-[1001] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          className="fixed inset-0 z-[1001] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300 animate-fadeIn"
           onClick={() => setShowPinModal(false)}
         >
           <div
-            className="bg-white max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-black transition-all duration-300 scale-100"
+            className="bg-white max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-black transition-all duration-300 scale-100 animate-fadeInUp"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-black bg-red-900 bg-opacity-10">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold tracking-tighter text-black">
-                  Requests in Area ({selectedPinCount})
+                  Requests in Area{locationName ? `, ${locationName}` : ""}
                 </h3>
                 <button
                   onClick={() => setShowPinModal(false)}
@@ -2309,74 +2321,62 @@ export default function MapPage() {
                 </button>
               </div>
             </div>
-            {/* Comparison Bar - Vertical, Blue, Animated with Requests List */}
+            {/* Statistics and Requests List */}
             <div className="p-3 md:p-6 border-b border-black bg-gradient-to-br from-gray-50 to-gray-100">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 h-auto md:h-[400px]">
-                {/* Left Side - Bars */}
-                <div className="flex items-end justify-center md:justify-start gap-4 md:gap-6 flex-shrink-0">
-                  {/* Vertical Bar Container - This Area */}
-                  <div className="flex flex-col items-center gap-1 md:gap-2">
-                    <div className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      This Area
-                    </div>
-                    <div className="relative w-12 md:w-16 lg:w-20 h-32 md:h-64 lg:h-full bg-gray-200 overflow-hidden border-2 border-gray-300 shadow-inner">
-                      <div
-                        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 shadow-lg ${
-                          barAnimated ? "animate-fillUp" : ""
-                        }`}
-                        style={{
-                          height: barAnimated
-                            ? `${
-                                maxPinCount > 0
-                                  ? (selectedPinCount / maxPinCount) * 100
-                                  : 0
-                              }%`
-                            : "0%",
-                          minHeight: selectedPinCount > 0 ? "8px" : "0px",
-                          transition: barAnimated
-                            ? "height 1.5s ease-out"
-                            : "none",
-                        }}
-                      >
-                        {/* Animated shimmer effect */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                {/* Left Side - Statistics */}
+                <div className="flex-shrink-0">
+                  <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 md:gap-3">
+                    {/* Stat 1: Total Requests (Last 4 Weeks) */}
+                    <div className="bg-white border border-black p-2 md:p-3">
+                      <div className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider mb-0.5">
+                        Total Requests
                       </div>
-                      {/* Count label inside bar */}
-                      {selectedPinCount > 0 && (
-                        <div
-                          className="absolute left-1/2 transform -translate-x-1/2 text-white font-bold text-sm md:text-base lg:text-lg z-10 transition-all duration-1500 ease-out drop-shadow-lg"
-                          style={{
-                            bottom: `${
-                              maxPinCount > 0
-                                ? (selectedPinCount / maxPinCount) * 100
-                                : 0
-                            }%`,
-                            marginBottom: "4px",
-                          }}
-                        >
-                          {selectedPinCount}
-                        </div>
-                      )}
+                      <div className="text-base md:text-xl font-bold text-gray-900">
+                        {selectedPinCount * 4}
+                      </div>
+                      <div className="text-[9px] md:text-xs text-gray-600 mt-0.5">
+                        Last 4 weeks
+                      </div>
                     </div>
-                    <div className="text-[10px] md:text-xs font-medium text-gray-600 text-center">
-                      {selectedPinCount} request
-                      {selectedPinCount !== 1 ? "s" : ""}
-                    </div>
-                  </div>
 
-                  {/* Max Area Bar */}
-                  <div className="flex flex-col items-center gap-1 md:gap-2">
-                    <div className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Highest Area
-                    </div>
-                    <div className="relative w-12 md:w-16 lg:w-20 h-32 md:h-64 lg:h-full bg-gray-200 overflow-hidden border-2 border-gray-300 shadow-inner">
-                      <div className="absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-blue-300 via-blue-200 to-blue-100 opacity-40"></div>
-                      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-600 font-bold text-sm md:text-base lg:text-lg">
-                        {maxPinCount}
+                    {/* Stat 2: Donation Goal */}
+                    <div className="bg-white border border-black p-2 md:p-3">
+                      <div className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider mb-0.5">
+                        Donation Goal
+                      </div>
+                      <div className="text-base md:text-xl font-bold text-gray-900">
+                        ${(selectedPinCount * 6 * 10).toLocaleString()}
+                      </div>
+                      <div className="text-[9px] md:text-xs text-gray-600 mt-0.5">
+                        Target amount
                       </div>
                     </div>
-                    <div className="text-[10px] md:text-xs font-medium text-gray-600 text-center">
-                      {maxPinCount} request{maxPinCount !== 1 ? "s" : ""}
+
+                    {/* Stat 3: People Helped */}
+                    <div className="bg-white border border-black p-2 md:p-3">
+                      <div className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider mb-0.5">
+                        People Helped
+                      </div>
+                      <div className="text-base md:text-xl font-bold text-gray-900">
+                        {selectedPinCount * 3}
+                      </div>
+                      <div className="text-[9px] md:text-xs text-gray-600 mt-0.5">
+                        Estimated impact
+                      </div>
+                    </div>
+
+                    {/* Stat 4: Current Requests */}
+                    <div className="bg-white border border-black p-2 md:p-3">
+                      <div className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider mb-0.5">
+                        Current Requests
+                      </div>
+                      <div className="text-base md:text-xl font-bold text-gray-900">
+                        {selectedPinCount}
+                      </div>
+                      <div className="text-[9px] md:text-xs text-gray-600 mt-0.5">
+                        In this area
+                      </div>
                     </div>
                   </div>
                 </div>
