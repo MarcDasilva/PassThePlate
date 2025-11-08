@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/app/lib/supabase/client";
+import { ROUTES } from "@/app/lib/routes";
 
 interface AuthContextType {
   user: User | null;
@@ -62,7 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}${
+          ROUTES.AUTH_CALLBACK
+        }?next=${encodeURIComponent(ROUTES.DASHBOARD)}`,
       },
     });
   };

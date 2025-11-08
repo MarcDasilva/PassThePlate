@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Navbar } from "@/app/components/navbar";
+import { ROUTES } from "@/app/lib/routes";
 
 export default function SignInPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -37,7 +38,7 @@ export default function SignInPage() {
       if (error) {
         setError(error.message);
       } else {
-        router.push("/");
+        router.push(ROUTES.DASHBOARD);
       }
     } else {
       setLoading(true);
@@ -47,7 +48,7 @@ export default function SignInPage() {
       if (error) {
         setError(error.message);
       } else {
-        router.push("/");
+        router.push(ROUTES.DASHBOARD);
       }
     }
   };
