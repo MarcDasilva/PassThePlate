@@ -14,7 +14,14 @@ import {
   deleteDonation,
   Donation,
 } from "@/app/lib/supabase/donations";
+import {
+  getAvailableRequests,
+  getUserRequests,
+  deleteRequest,
+  Request,
+} from "@/app/lib/supabase/requests";
 import PostDonationModal from "./PostDonationModal";
+import RequestDonationModal from "./RequestDonationModal";
 import "leaflet/dist/leaflet.css";
 
 // Dynamically import the map component to avoid SSR issues
@@ -28,6 +35,7 @@ const MapComponent = dynamic(() => import("./MapComponent"), {
 }) as React.ComponentType<{
   center: [number, number];
   donations?: Donation[];
+  requests?: Request[];
   radius?: number;
 }>;
 
@@ -47,13 +55,24 @@ export default function MapPage() {
   const [locationUnavailable, setLocationUnavailable] = useState(false);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [userDonations, setUserDonations] = useState<Donation[]>([]);
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [userRequests, setUserRequests] = useState<Request[]>([]);
   const [isPostDonationModalOpen, setIsPostDonationModalOpen] = useState(false);
+  const [isRequestDonationModalOpen, setIsRequestDonationModalOpen] =
+    useState(false);
   const [isMyPostingsOpen, setIsMyPostingsOpen] = useState(false);
+  const [isMyRequestsOpen, setIsMyRequestsOpen] = useState(false);
   const [toggleEnabled, setToggleEnabled] = useState(false);
   const [radius, setRadius] = useState<number>(500); // Default 500m
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [donationToDelete, setDonationToDelete] = useState<string | null>(null);
+  const [deletingRequestId, setDeletingRequestId] = useState<string | null>(
+    null
+  );
+  const [showDeleteRequestConfirm, setShowDeleteRequestConfirm] =
+    useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   const [isControlsMinimized, setIsControlsMinimized] = useState(false);
   const [isRequestMenuMinimized, setIsRequestMenuMinimized] = useState(true);
 
@@ -123,9 +142,9 @@ export default function MapPage() {
     }
   }, []);
 
-  // Fetch donations when user is authenticated
+  // Fetch donations and requests when user is authenticated
   useEffect(() => {
-    const fetchDonations = async () => {
+    const fetchData = async () => {
       if (user && !checkingProfile) {
         const availableDonations = await getAvailableDonations();
         setDonations(availableDonations);
@@ -133,10 +152,18 @@ export default function MapPage() {
         // Fetch user's own donations
         const myDonations = await getUserDonations(user.id);
         setUserDonations(myDonations);
+
+        // Fetch available requests
+        const availableRequests = await getAvailableRequests();
+        setRequests(availableRequests);
+
+        // Fetch user's own requests
+        const myRequests = await getUserRequests(user.id);
+        setUserRequests(myRequests);
       }
     };
 
-    fetchDonations();
+    fetchData();
   }, [user, checkingProfile]);
 
   const handlePostDonation = () => {
@@ -145,6 +172,14 @@ export default function MapPage() {
       return;
     }
     setIsPostDonationModalOpen(true);
+  };
+
+  const handleRequestDonation = () => {
+    if (!userLocation) {
+      alert("Please enable location services to request a donation");
+      return;
+    }
+    setIsRequestDonationModalOpen(true);
   };
 
   const handleDonationPosted = async () => {
@@ -156,6 +191,18 @@ export default function MapPage() {
       // Refresh user's donations
       const myDonations = await getUserDonations(user.id);
       setUserDonations(myDonations);
+    }
+  };
+
+  const handleRequestPosted = async () => {
+    // Refresh requests list
+    if (user && !checkingProfile) {
+      const availableRequests = await getAvailableRequests();
+      setRequests(availableRequests);
+
+      // Refresh user's requests
+      const myRequests = await getUserRequests(user.id);
+      setUserRequests(myRequests);
     }
   };
 
@@ -197,6 +244,46 @@ export default function MapPage() {
 
   const handleMyPostings = () => {
     setIsMyPostingsOpen(!isMyPostingsOpen);
+  };
+
+  const handleMyRequests = () => {
+    setIsMyRequestsOpen(!isMyRequestsOpen);
+  };
+
+  const handleDeleteRequestClick = (requestId: string) => {
+    setRequestToDelete(requestId);
+    setShowDeleteRequestConfirm(true);
+  };
+
+  const handleDeleteRequestConfirm = async () => {
+    if (!user || !requestToDelete) return;
+
+    setShowDeleteRequestConfirm(false);
+    setDeletingRequestId(requestToDelete);
+
+    const { error } = await deleteRequest(requestToDelete, user.id);
+
+    if (error) {
+      alert(`Failed to delete request: ${error.message}`);
+      setDeletingRequestId(null);
+      setRequestToDelete(null);
+      return;
+    }
+
+    // Refresh both lists
+    const availableRequests = await getAvailableRequests();
+    setRequests(availableRequests);
+
+    const myRequests = await getUserRequests(user.id);
+    setUserRequests(myRequests);
+
+    setDeletingRequestId(null);
+    setRequestToDelete(null);
+  };
+
+  const handleDeleteRequestCancel = () => {
+    setShowDeleteRequestConfirm(false);
+    setRequestToDelete(null);
   };
 
   const handleFilter = () => {
@@ -295,6 +382,7 @@ export default function MapPage() {
           <MapComponent
             center={userLocation}
             donations={donations}
+            requests={requests}
             radius={radius}
           />
         ) : locationUnavailable ? (
@@ -534,12 +622,9 @@ export default function MapPage() {
           >
             <div className="p-2 md:p-4 lg:p-6 space-y-2 md:space-y-3 lg:space-y-4">
               {/* Request a Donation Button */}
-              <div className="bg-gradient-to-br from-red-900 to-red-800 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 shadow-md hover:shadow-lg transition-shadow">
+              <div className="bg-red-900 rounded-md md:rounded-lg p-2 md:p-3 lg:p-4 shadow-md hover:shadow-lg transition-shadow">
                 <button
-                  onClick={() => {
-                    // TODO: Add request donation handler
-                    console.log("Request a Donation clicked");
-                  }}
+                  onClick={handleRequestDonation}
                   className="w-full text-xs md:text-sm font-semibold uppercase tracking-wider text-white py-1.5 md:py-2 lg:py-3 px-2 md:px-3 lg:px-4 rounded transition-all hover:opacity-90 active:scale-95"
                 >
                   Request a Donation
@@ -554,12 +639,12 @@ export default function MapPage() {
                 Filter
               </button>
 
-              {/* My Postings Button */}
+              {/* My Requests Button */}
               <button
-                onClick={handleMyPostings}
+                onClick={handleMyRequests}
                 className="w-full text-xs md:text-sm uppercase tracking-widest bg-white text-black border border-black px-2 md:px-3 lg:px-5 py-1.5 md:py-2 transition-colors hover:bg-black hover:text-white rounded"
               >
-                My Postings ({userDonations.length})
+                My Requests ({userRequests.length})
               </button>
 
               {/* Toggle Switch */}
@@ -629,12 +714,12 @@ export default function MapPage() {
                     </p>
                     <p className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900">
                       {userLocation
-                        ? donations.filter((donation) => {
+                        ? requests.filter((request) => {
                             const distance = calculateDistance(
                               userLocation[0],
                               userLocation[1],
-                              donation.latitude,
-                              donation.longitude
+                              request.latitude,
+                              request.longitude
                             );
                             // Convert distance from km to meters for comparison
                             return distance * 1000 <= radius;
@@ -675,6 +760,14 @@ export default function MapPage() {
         isOpen={isPostDonationModalOpen}
         onClose={() => setIsPostDonationModalOpen(false)}
         onSuccess={handleDonationPosted}
+        currentLocation={userLocation}
+      />
+
+      {/* Request Donation Modal */}
+      <RequestDonationModal
+        isOpen={isRequestDonationModalOpen}
+        onClose={() => setIsRequestDonationModalOpen(false)}
+        onSuccess={handleRequestPosted}
         currentLocation={userLocation}
       />
 
@@ -812,6 +905,129 @@ export default function MapPage() {
         </div>
       )}
 
+      {/* My Requests Modal */}
+      {isMyRequestsOpen && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={() => setIsMyRequestsOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-gray-100 transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200 bg-red-900 bg-opacity-10">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold tracking-tighter text-black">
+                  My Requests
+                </h2>
+                <button
+                  onClick={() => setIsMyRequestsOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto max-h-[calc(85vh-100px)] p-6">
+              {userRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg
+                    className="w-16 h-16 text-gray-400 mx-auto mb-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <p className="text-gray-600 font-medium mb-2">
+                    No requests yet
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Create your first donation request to get started
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="bg-red-900 bg-opacity-5 rounded-lg p-4 border border-red-900 border-opacity-20 hover:border-opacity-30 transition-all"
+                    >
+                      <div className="flex gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="font-semibold text-black text-sm md:text-base truncate">
+                              {request.title}
+                            </h3>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                                request.status === "open"
+                                  ? "bg-red-900 bg-opacity-20 text-red-900"
+                                  : request.status === "fulfilled"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {request.status}
+                            </span>
+                          </div>
+                          <p className="text-xs md:text-sm text-gray-700 line-clamp-2 mb-2">
+                            {request.description}
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
+                            {request.address && (
+                              <span className="bg-red-900 bg-opacity-10 px-2 py-1 rounded border border-red-900 border-opacity-20 text-black">
+                                📍 {request.address}
+                              </span>
+                            )}
+                            {request.phone_number && (
+                              <span className="bg-red-900 bg-opacity-10 px-2 py-1 rounded border border-red-900 border-opacity-20 text-black">
+                                📞 {request.phone_number}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleDeleteRequestClick(request.id)}
+                            disabled={deletingRequestId === request.id}
+                            className="mt-2 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-xs text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            title="Delete"
+                          >
+                            {deletingRequestId === request.id ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600"></div>
+                            ) : (
+                              <svg
+                                className="w-4 h-4 text-gray-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            )}
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div
@@ -841,6 +1057,45 @@ export default function MapPage() {
                 </button>
                 <button
                   onClick={handleDeleteConfirm}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Request Confirmation Modal */}
+      {showDeleteRequestConfirm && (
+        <div
+          className="fixed inset-0 z-[1001] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={handleDeleteRequestCancel}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 border border-gray-100 transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200 bg-red-900 bg-opacity-10">
+              <h3 className="text-xl font-bold tracking-tighter text-black">
+                Delete Request
+              </h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this request? This action cannot
+                be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteRequestCancel}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteRequestConfirm}
                   className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
                 >
                   Delete

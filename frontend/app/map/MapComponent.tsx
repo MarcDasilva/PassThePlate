@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { Donation } from "@/app/lib/supabase/donations";
+import { Request } from "@/app/lib/supabase/requests";
 import ProfileModal from "./ProfileModal";
 
 // Fix for Leaflet default icon in Next.js
@@ -32,6 +33,20 @@ const donationIcon = L.icon({
   shadowSize: [41, 41],
 });
 
+// Custom red icon for request markers
+const requestIcon = L.icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  iconRetinaUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
 // Helper function to escape HTML to prevent XSS
 const escapeHtml = (text: string): string => {
   const div = document.createElement("div");
@@ -42,18 +57,21 @@ const escapeHtml = (text: string): string => {
 interface MapComponentProps {
   center: [number, number];
   donations?: Donation[];
+  requests?: Request[];
   radius?: number;
 }
 
 export default function MapComponent({
   center,
   donations = [],
+  requests = [],
   radius = 500,
 }: MapComponentProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const donationMarkersRef = useRef<L.Marker[]>([]);
+  const requestMarkersRef = useRef<L.Marker[]>([]);
   const radiusCircleRef = useRef<L.Circle | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -114,43 +132,51 @@ export default function MapComponent({
       // Remove donation markers
       donationMarkersRef.current.forEach((marker) => marker.remove());
       donationMarkersRef.current = [];
+      // Remove request markers
+      requestMarkersRef.current.forEach((marker) => marker.remove());
+      requestMarkersRef.current = [];
       // Remove map
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, [center, radius]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Update map center, user marker position, and radius circle when center or radius changes
   useEffect(() => {
-    if (mapRef.current && center) {
-      // Use zoom level 16 when updating view
-      mapRef.current.setView(center, 16);
+    if (!mapRef.current) return;
+
+    // Update map center if center changes
+    if (center) {
+      mapRef.current.setView(center, mapRef.current.getZoom());
 
       // Update user marker position
       if (userMarkerRef.current) {
         userMarkerRef.current.setLatLng(center);
-      } else if (mapRef.current) {
+      } else {
         // If marker doesn't exist yet, create it
         userMarkerRef.current = L.marker(center).addTo(mapRef.current);
       }
+    }
 
-      // Update or create radius circle (radius is already in meters)
-      if (radiusCircleRef.current) {
+    // Update or create radius circle (radius is already in meters)
+    if (radiusCircleRef.current) {
+      if (center) {
         radiusCircleRef.current.setLatLng(center);
-        radiusCircleRef.current.setRadius(radius);
-      } else if (mapRef.current) {
-        // If circle doesn't exist yet, create it
-        radiusCircleRef.current = L.circle(center, {
-          radius: radius,
-          fillColor: "#3b82f6", // Light blue
-          fillOpacity: 0.2,
-          color: "#3b82f6",
-          weight: 2,
-          opacity: 0.5,
-        }).addTo(mapRef.current);
       }
+      radiusCircleRef.current.setRadius(radius);
+    } else if (mapRef.current && center) {
+      // If circle doesn't exist yet, create it
+      radiusCircleRef.current = L.circle(center, {
+        radius: radius,
+        fillColor: "#3b82f6", // Light blue
+        fillOpacity: 0.2,
+        color: "#3b82f6",
+        weight: 2,
+        opacity: 0.5,
+      }).addTo(mapRef.current);
     }
   }, [center, radius]);
 
@@ -340,6 +366,128 @@ export default function MapComponent({
       donationMarkersRef.current.push(marker);
     });
   }, [donations]);
+
+  // Update request markers when requests change
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Remove existing request markers
+    requestMarkersRef.current.forEach((marker) => marker.remove());
+    requestMarkersRef.current = [];
+
+    // Add new request markers
+    requests.forEach((request) => {
+      const marker = L.marker([request.latitude, request.longitude], {
+        icon: requestIcon,
+      }).addTo(mapRef.current!);
+
+      // Create popup content with escaped HTML and view profile button
+      const popupContent = document.createElement("div");
+      popupContent.style.minWidth = "250px";
+      popupContent.style.maxWidth = "400px";
+      popupContent.innerHTML = `
+        <div>
+          <h3 style="font-weight: bold; margin-bottom: 8px; color: #dc2626;">
+            ${escapeHtml(request.title)}
+          </h3>
+          <p style="margin-bottom: 12px; color: #666; font-size: 14px;">
+            ${escapeHtml(request.description)}
+          </p>
+          ${
+            request.address
+              ? `<p style="margin-bottom: 8px; color: #888; font-size: 12px;">
+                  📍 ${escapeHtml(request.address)}
+                </p>`
+              : ""
+          }
+          ${
+            request.phone_number
+              ? `<p style="margin-bottom: 8px; color: #888; font-size: 12px;">
+                  📞 ${escapeHtml(request.phone_number)}
+                </p>`
+              : ""
+          }
+          <div style="
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+          ">
+            <button 
+              id="view-profile-request-${request.id}" 
+              style="
+                flex: 1;
+                padding: 8px 12px; 
+                background-color: #dc2626; 
+                color: white; 
+                border: none; 
+                border-radius: 4px; 
+                cursor: pointer; 
+                font-size: 14px;
+                font-weight: 500;
+                transition: background-color 0.2s;
+              "
+              onmouseover="this.style.backgroundColor='#b91c1c'"
+              onmouseout="this.style.backgroundColor='#dc2626'"
+            >
+              View Profile
+            </button>
+            <button 
+              id="directions-request-${request.id}" 
+              style="
+                flex: 1;
+                padding: 8px 12px; 
+                background-color: #3b82f6; 
+                color: white; 
+                border: none; 
+                border-radius: 4px; 
+                cursor: pointer; 
+                font-size: 14px;
+                font-weight: 500;
+                transition: background-color 0.2s;
+              "
+              onmouseover="this.style.backgroundColor='#2563eb'"
+              onmouseout="this.style.backgroundColor='#3b82f6'"
+            >
+              Directions
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Add click handler for view profile button
+      const viewProfileBtn = popupContent.querySelector(
+        `#view-profile-request-${request.id}`
+      ) as HTMLButtonElement;
+      if (viewProfileBtn) {
+        viewProfileBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+
+          // Open profile modal without closing the popup
+          setSelectedUserId(request.user_id);
+          setIsProfileModalOpen(true);
+        });
+      }
+
+      // Add click handler for directions button
+      const directionsBtn = popupContent.querySelector(
+        `#directions-request-${request.id}`
+      ) as HTMLButtonElement;
+      if (directionsBtn) {
+        directionsBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+
+          // Show warning modal first
+          setDirectionsLocation([request.latitude, request.longitude]);
+          setShowDirectionsWarning(true);
+        });
+      }
+
+      marker.bindPopup(popupContent);
+      requestMarkersRef.current.push(marker);
+    });
+  }, [requests]);
 
   const handleDirectionsConfirm = () => {
     if (directionsLocation) {
