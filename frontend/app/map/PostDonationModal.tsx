@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createDonation, uploadDonationImage } from "@/app/lib/supabase/donations";
+import {
+  createDonation,
+  uploadDonationImage,
+} from "@/app/lib/supabase/donations";
 import { useAuth } from "@/app/providers/AuthProvider";
 
 interface PostDonationModalProps {
@@ -89,7 +92,9 @@ export default function PostDonationModal({
     }
 
     if (!currentLocation) {
-      setLocationError("Location is required. Please enable location services.");
+      setLocationError(
+        "Location is required. Please enable location services."
+      );
       return;
     }
 
@@ -110,16 +115,18 @@ export default function PostDonationModal({
       // Upload image if one was selected
       if (imageFile) {
         setUploadingImage(true);
-        const { data: uploadData, error: uploadError } = await uploadDonationImage(
-          user.id,
-          imageFile
-        );
+        const { data: uploadData, error: uploadError } =
+          await uploadDonationImage(user.id, imageFile);
 
         if (uploadError || !uploadData) {
           let errorMessage = uploadError?.message || "Failed to upload image";
           // Provide helpful message for bucket not found
-          if (errorMessage.includes("Bucket not found") || errorMessage.includes("Storage bucket")) {
-            errorMessage = "Storage bucket 'donations' not found. Please create it in your Supabase dashboard under Storage → Create Bucket. Name it 'donations' and make it public.";
+          if (
+            errorMessage.includes("Bucket not found") ||
+            errorMessage.includes("Storage bucket")
+          ) {
+            errorMessage =
+              "Storage bucket 'donations' not found. Please create it in your Supabase dashboard under Storage → Create Bucket. Name it 'donations' and make it public.";
           }
           setError(errorMessage);
           setLoading(false);
@@ -208,7 +215,7 @@ export default function PostDonationModal({
                 onChange={(e) => setTitle(e.target.value)}
                 required
                 className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
-                placeholder="Enter donation title"
+                placeholder="Whats being saved?"
               />
             </div>
 
@@ -243,13 +250,13 @@ export default function PostDonationModal({
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
-                placeholder="e.g., Food, Clothing, Furniture"
+                placeholder="e.g., Canned Goods, Produce, Household Items"
               />
             </div>
 
             <div>
               <label
-                htmlFor="address"
+                htmlFor="Additional Info"
                 className="block text-sm uppercase tracking-widest mb-2 text-black"
               >
                 Address
@@ -260,7 +267,7 @@ export default function PostDonationModal({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
-                placeholder="Optional address or location details"
+                placeholder="Pickup location details"
               />
             </div>
 
@@ -331,4 +338,3 @@ export default function PostDonationModal({
     </div>
   );
 }
-
