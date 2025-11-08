@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
 import {
@@ -31,6 +31,8 @@ export default function AccountPage() {
   const [setupAboutMe, setSetupAboutMe] = useState("");
   const [setupAvatarUrl, setSetupAvatarUrl] = useState<string | null>(null);
   const [setupLoading, setSetupLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -291,13 +293,14 @@ export default function AccountPage() {
     router.push(ROUTES.SIGN_IN);
   };
 
-  if (loading || checkingProfile) {
-    return (
-      <main className="min-h-screen bg-[#367230] flex items-center justify-center">
-        <p className="text-white text-xl">Loading...</p>
-      </main>
-    );
-  }
+  useEffect(() => {
+    if (!loading && !checkingProfile && profile) {
+      // Trigger fade-in animation when content is ready
+      setTimeout(() => {
+        setIsVisible(true);
+      }, 100);
+    }
+  }, [loading, checkingProfile, profile]);
 
   if (!user) {
     return null;
@@ -391,152 +394,195 @@ export default function AccountPage() {
     return null;
   }
 
+  if (loading || checkingProfile) {
+    return (
+      <main className="min-h-screen bg-[#367230]">
+        <Navbar />
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#367230]">
       <Navbar />
-      <div className="pt-32 pb-20 px-4 md:px-8 container mx-auto">
-        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Profile Background Header */}
-          <div className="relative h-48 md:h-64 w-full overflow-hidden">
-            <img
-              src="/bg.jpg"
-              alt="Profile background"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white"></div>
-          </div>
-
-          {/* Profile Picture - Overlapping the background */}
-          <div className="relative -mt-24 md:-mt-32 flex justify-center mb-6">
-            <div className="relative z-10">
-              <ProfilePictureUpload
-                currentAvatarUrl={profile.avatar_url}
-                onUpload={handleAvatarUpload}
-                onRemove={profile.avatar_url ? handleAvatarRemove : undefined}
-                uploading={uploadingAvatar}
+      <div className="pt-20 md:pt-24 pb-12 md:pb-16 px-4 md:px-6 lg:px-8 container mx-auto">
+        <div 
+          ref={contentRef}
+          className={`flex flex-col lg:flex-row gap-3 lg:gap-4 max-w-5xl mx-auto transition-all duration-1000 ease-out ${
+            isVisible
+              ? "translate-y-0 opacity-100"
+              : "translate-y-10 opacity-0"
+          }`}
+        >
+          {/* Main Content Card */}
+          <div className="flex-1 bg-white border border-black overflow-hidden">
+            {/* Profile Background Header */}
+            <div className="relative h-36 md:h-48 lg:h-44 w-full overflow-hidden">
+              <img
+                src="/bg.jpg"
+                alt="Profile background"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white"></div>
+            </div>
+
+            {/* Profile Picture - Overlapping the background */}
+            <div className="relative -mt-16 md:-mt-24 lg:-mt-20 flex justify-center mb-3 md:mb-5">
+              <div className="relative z-10">
+                <ProfilePictureUpload
+                  currentAvatarUrl={profile.avatar_url}
+                  onUpload={handleAvatarUpload}
+                  onRemove={profile.avatar_url ? handleAvatarRemove : undefined}
+                  uploading={uploadingAvatar}
+                />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-5 md:px-6 lg:px-7 pb-5 md:pb-6 lg:pb-7">
+              <h1 className="text-2xl md:text-3xl lg:text-3xl font-bold tracking-tighter mb-5 md:mb-6 text-black text-center">
+                Account
+              </h1>
+
+              <div className="space-y-3 md:space-y-4 lg:space-y-5">
+                {error && (
+                  <div className="p-3 bg-red-100 border border-red-400 text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm uppercase tracking-widest mb-2 text-black">
+                    Name
+                  </label>
+                  <p className="text-lg text-black">{profile.name}</p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm uppercase tracking-widest text-black">
+                      About Me
+                    </label>
+                    {!isEditingAbout && (
+                      <button
+                        onClick={handleEditAbout}
+                        className="text-sm uppercase tracking-widest text-black hover:text-[#367230] transition-colors underline"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                  {isEditingAbout ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={editedAbout}
+                        onChange={(e) => setEditedAbout(e.target.value)}
+                        rows={4}
+                        className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
+                        placeholder="Tell us about yourself"
+                      />
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleSaveAbout}
+                          disabled={saving}
+                          className="px-6 py-2 bg-black text-white text-sm uppercase tracking-widest hover:bg-[#367230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {saving ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          disabled={saving}
+                          className="px-6 py-2 border border-black text-black text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-lg text-black whitespace-pre-wrap">
+                      {profile.about_me}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm uppercase tracking-widest mb-2 text-black">
+                    Email
+                  </label>
+                  <p className="text-lg text-black">{user.email}</p>
+                </div>
+
+                <div className="pt-6 border-t border-black">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-8 py-3 bg-black text-white text-sm uppercase tracking-widest hover:bg-red-600 transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="px-8 pb-8">
-            <h1 className="text-4xl font-bold tracking-tighter mb-8 text-black text-center">
-              Account
-            </h1>
-
-            <div className="space-y-6">
-              {error && (
-                <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                  Name
+          {/* Rating and Achievements Side Panel */}
+          <div className="w-full lg:w-64 bg-white border border-black p-4 md:p-5 lg:p-5">
+            <h2 className="text-lg md:text-xl lg:text-xl font-bold tracking-tighter mb-4 md:mb-5 text-black uppercase">
+              Stats
+            </h2>
+            
+            <div className="space-y-5 md:space-y-6 lg:space-y-6">
+              {/* Rating */}
+              <div className="border-b border-black pb-4 md:pb-5">
+                <label className="block text-xs uppercase tracking-widest mb-2 md:mb-3 text-black">
+                  Rating
                 </label>
-                <p className="text-lg text-black">{profile.name}</p>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm uppercase tracking-widest text-black">
-                    About Me
-                  </label>
-                  {!isEditingAbout && (
-                    <button
-                      onClick={handleEditAbout}
-                      className="text-sm uppercase tracking-widest text-black hover:text-[#367230] transition-colors underline"
-                    >
-                      Edit
-                    </button>
-                  )}
-                </div>
-                {isEditingAbout ? (
-                  <div className="space-y-3">
-                    <textarea
-                      value={editedAbout}
-                      onChange={(e) => setEditedAbout(e.target.value)}
-                      rows={4}
-                      className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
-                      placeholder="Tell us about yourself"
-                    />
-                    <div className="flex gap-3">
-                      <button
-                        onClick={handleSaveAbout}
-                        disabled={saving}
-                        className="px-6 py-2 bg-black text-white text-sm uppercase tracking-widest hover:bg-[#367230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {saving ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        disabled={saving}
-                        className="px-6 py-2 border border-black text-black text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Cancel
-                      </button>
+                {profile.rating !== null && profile.rating !== undefined ? (
+                  <div className="flex flex-col items-start gap-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#367230]">
+                        {profile.rating.toFixed(1)}
+                      </span>
+                      <span className="text-sm md:text-base text-gray-500">/ 5.0</span>
+                    </div>
+                    <div className="flex gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <span
+                          key={i}
+                          className={`text-lg md:text-xl ${
+                            i < Math.floor(profile.rating!)
+                              ? "text-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          ★
+                        </span>
+                      ))}
                     </div>
                   </div>
                 ) : (
-                  <p className="text-lg text-black whitespace-pre-wrap">
-                    {profile.about_me}
-                  </p>
+                  <p className="text-sm md:text-base text-gray-500">No rating yet</p>
                 )}
               </div>
 
+              {/* Achievements */}
               <div>
-                <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                  Email
+                <label className="block text-xs uppercase tracking-widest mb-2 md:mb-3 text-black">
+                  Achievements
                 </label>
-                <p className="text-lg text-black">{user.email}</p>
-              </div>
-
-              {/* Rating and Achievements Section */}
-              <div className="pt-6 border-t border-black space-y-6">
-                {/* Rating */}
-                <div>
-                  <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                    Rating
-                  </label>
-                  {profile.rating !== null && profile.rating !== undefined ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-[#367230]">
-                        {profile.rating.toFixed(1)}
-                      </span>
-                      <span className="text-gray-500">/ 5.0</span>
-                      <span className="text-yellow-400 text-xl">★</span>
-                    </div>
-                  ) : (
-                    <p className="text-lg text-gray-500">No rating yet</p>
-                  )}
-                </div>
-
-                {/* Achievements */}
-                <div>
-                  <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                    Achievements
-                  </label>
-                  {profile.achievements ? (
-                    <p className="text-lg text-black whitespace-pre-wrap">
+                {profile.achievements ? (
+                  <div className="bg-[#367230] bg-opacity-10 border border-black p-2 md:p-3">
+                    <p className="text-xs md:text-sm text-black whitespace-pre-wrap leading-relaxed">
                       {profile.achievements}
                     </p>
-                  ) : (
-                    <p className="text-lg text-gray-500">No achievements yet</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-black">
-                <button
-                  onClick={handleLogout}
-                  className="w-full px-8 py-3 bg-black text-white text-sm uppercase tracking-widest hover:bg-red-600 transition-colors"
-                >
-                  Sign Out
-                </button>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-black p-2 md:p-3">
+                    <p className="text-sm md:text-base text-gray-500 text-center">No achievements yet</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
