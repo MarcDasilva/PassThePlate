@@ -33,6 +33,8 @@ export default function PostDonationModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [moderating, setModerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -48,6 +50,8 @@ export default function PostDonationModal({
       setError(null);
       setLocationError(null);
       setDescribingWithAI(false);
+      setShowRejectionModal(false);
+      setModerating(false);
     }
   }, [isOpen]);
 
@@ -134,6 +138,19 @@ export default function PostDonationModal({
     }
   };
 
+  // Convert image file to base64 for moderation
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -160,6 +177,49 @@ export default function PostDonationModal({
       return;
     }
 
+    // Content moderation check
+    setModerating(true);
+    try {
+      let imageBase64: string | null = null;
+      if (imageFile) {
+        imageBase64 = await convertImageToBase64(imageFile);
+      }
+
+      const moderationResponse = await fetch("/api/moderate-donation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          category: category.trim() || null,
+          imageBase64: imageBase64,
+        }),
+      });
+
+      if (!moderationResponse.ok) {
+        const errorData = await moderationResponse.json();
+        setError(errorData.error || "Failed to verify donation content");
+        setModerating(false);
+        return;
+      }
+
+      const moderationData = await moderationResponse.json();
+
+      if (!moderationData.isAcceptable) {
+        setModerating(false);
+        setShowRejectionModal(true);
+        return;
+      }
+    } catch (err) {
+      console.error("Error moderating donation:", err);
+      setError("Failed to verify donation content. Please try again.");
+      setModerating(false);
+      return;
+    }
+
+    setModerating(false);
     setLoading(true);
     let uploadedImageUrl: string | null = null;
 
@@ -410,15 +470,19 @@ export default function PostDonationModal({
             <div className="pt-4 flex gap-3">
               <button
                 type="submit"
-                disabled={loading || !currentLocation}
+                disabled={loading || moderating || !currentLocation}
                 className="flex-1 px-6 py-3 bg-black text-white text-sm uppercase tracking-widest hover:bg-[#367230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Posting..." : "Post Donation"}
+                {moderating
+                  ? "Verifying..."
+                  : loading
+                  ? "Posting..."
+                  : "Post Donation"}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                disabled={loading}
+                disabled={loading || moderating}
                 className="px-6 py-3 border border-black text-black text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
@@ -427,6 +491,39 @@ export default function PostDonationModal({
           </form>
         </div>
       </div>
+
+      {/* Rejection Modal */}
+      {showRejectionModal && (
+        <div
+          className="fixed inset-0 z-[1001] flex items-center justify-center bg-black bg-opacity-30 transition-opacity duration-300"
+          onClick={() => setShowRejectionModal(false)}
+        >
+          <div
+            className="bg-white max-w-md w-full mx-4 border border-black transition-all duration-300 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-black bg-red-900 bg-opacity-10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold tracking-tighter text-black">
+                  Wow...That's not nice..
+                </h3>
+                <button
+                  onClick={() => setShowRejectionModal(false)}
+                  className="w-6 h-6 rounded-full border border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors"
+                >
+                  <span className="text-sm font-bold">×</span>
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Our AI detects that you are posting malicious content, please
+                use app according to guidelines.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
