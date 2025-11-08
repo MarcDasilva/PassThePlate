@@ -8,6 +8,7 @@ export const ROUTES = {
   SIGN_UP: "/signup",
   MAP: "/map",
   ACCOUNT: "/account",
+  PROFILE_SETUP: "/profile/setup",
   AUTH_CALLBACK: "/auth/callback",
 } as const;
 

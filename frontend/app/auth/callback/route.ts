@@ -6,13 +6,33 @@ import { ROUTES } from "@/app/lib/routes";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? ROUTES.MAP;
+  const next = searchParams.get("next");
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      // Get the user to check if they have a profile
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        // Check if profile exists
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", user.id)
+          .single();
+
+        // If no profile exists and no explicit next parameter, redirect to profile setup
+        if (!profile && !next) {
+          return NextResponse.redirect(`${origin}${ROUTES.PROFILE_SETUP}`);
+        }
+      }
+
+      // Use the next parameter if provided, otherwise default to map
+      return NextResponse.redirect(`${origin}${next || ROUTES.MAP}`);
     }
   }
 

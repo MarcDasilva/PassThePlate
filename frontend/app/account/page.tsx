@@ -2,26 +2,112 @@
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
+import {
+  hasProfile,
+  getProfile,
+  upsertProfile,
+} from "@/app/lib/supabase/profile";
+import { Profile } from "@/app/lib/supabase/profile";
 
 export default function AccountPage() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [isEditingAbout, setIsEditingAbout] = useState(false);
+  const [editedAbout, setEditedAbout] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push(ROUTES.SIGN_IN);
-    }
+    const checkAuthAndProfile = async () => {
+      if (!loading && !user) {
+        router.push(ROUTES.SIGN_IN);
+        return;
+      }
+
+      if (user) {
+        // Check if user has completed profile
+        const profileExists = await hasProfile(user.id);
+        if (!profileExists) {
+          router.push(ROUTES.PROFILE_SETUP);
+          return;
+        }
+
+        // Load profile data
+        const profileData = await getProfile(user.id);
+        setProfile(profileData);
+        if (profileData) {
+          setEditedAbout(profileData.about_me);
+        }
+        setCheckingProfile(false);
+      }
+    };
+
+    checkAuthAndProfile();
   }, [user, loading, router]);
+
+  const handleEditAbout = () => {
+    setIsEditingAbout(true);
+    setError(null);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingAbout(false);
+    if (profile) {
+      setEditedAbout(profile.about_me);
+    }
+    setError(null);
+  };
+
+  const handleSaveAbout = async () => {
+    if (!user || !profile) return;
+
+    if (!editedAbout.trim()) {
+      setError("About me cannot be empty");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const { error: updateError } = await upsertProfile(user.id, {
+        name: profile.name,
+        about_me: editedAbout.trim(),
+        email: user.email || profile.email,
+      });
+
+      if (updateError) {
+        setError(updateError.message || "Failed to update about me");
+        setSaving(false);
+        return;
+      }
+
+      // Refresh profile data
+      const updatedProfile = await getProfile(user.id);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+        setEditedAbout(updatedProfile.about_me);
+      }
+
+      setIsEditingAbout(false);
+      setSaving(false);
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
     router.push(ROUTES.SIGN_IN);
   };
 
-  if (loading) {
+  if (loading || checkingProfile) {
     return (
       <main className="min-h-screen bg-[#367230] flex items-center justify-center">
         <p className="text-white text-xl">Loading...</p>
@@ -29,7 +115,7 @@ export default function AccountPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !profile) {
     return null;
   }
 
@@ -43,20 +129,71 @@ export default function AccountPage() {
           </h1>
 
           <div className="space-y-6">
+            {error && (
+              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm uppercase tracking-widest mb-2 text-black">
+                Name
+              </label>
+              <p className="text-lg text-black">{profile.name}</p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm uppercase tracking-widest text-black">
+                  About Me
+                </label>
+                {!isEditingAbout && (
+                  <button
+                    onClick={handleEditAbout}
+                    className="text-sm uppercase tracking-widest text-black hover:text-[#367230] transition-colors underline"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+              {isEditingAbout ? (
+                <div className="space-y-3">
+                  <textarea
+                    value={editedAbout}
+                    onChange={(e) => setEditedAbout(e.target.value)}
+                    rows={4}
+                    className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
+                    placeholder="Tell us about yourself"
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleSaveAbout}
+                      disabled={saving}
+                      className="px-6 py-2 bg-black text-white text-sm uppercase tracking-widest hover:bg-[#367230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                      className="px-6 py-2 border border-black text-black text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-lg text-black whitespace-pre-wrap">
+                  {profile.about_me}
+                </p>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm uppercase tracking-widest mb-2 text-black">
                 Email
               </label>
               <p className="text-lg text-black">{user.email}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm uppercase tracking-widest mb-2 text-black">
-                User ID
-              </label>
-              <p className="text-sm text-black/70 font-mono break-all">
-                {user.id}
-              </p>
             </div>
 
             <div className="pt-6 border-t border-black">
