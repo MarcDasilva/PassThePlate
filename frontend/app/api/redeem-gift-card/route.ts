@@ -37,10 +37,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has enough points
@@ -51,24 +48,21 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (fetchError || !profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     const currentRewards = profile.rewards || 0;
-    if (currentRewards < 50) {
+    if (currentRewards < 500) {
       return NextResponse.json(
-        { error: "Insufficient rewards points. Need 50 points." },
+        { error: "Insufficient rewards points. Need 500 points." },
         { status: 400 }
       );
     }
 
-    // Subtract 50 points
+    // Subtract 500 points
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ rewards: currentRewards - 50 })
+      .update({ rewards: currentRewards - 500 })
       .eq("id", user.id);
 
     if (updateError) {
@@ -85,7 +79,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Gift card redeemed successfully",
-      newRewardsBalance: currentRewards - 50,
+      newRewardsBalance: currentRewards - 500,
     });
   } catch (error: any) {
     console.error("Error redeeming gift card:", error);
@@ -95,4 +89,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

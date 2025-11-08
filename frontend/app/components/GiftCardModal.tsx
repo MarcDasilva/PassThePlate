@@ -18,7 +18,7 @@ const GIFT_CARDS = [
   { id: "amazon", name: "Amazon", image: "/amazon.png" },
 ];
 
-const REQUIRED_POINTS = 50;
+const REQUIRED_POINTS = 500;
 const GIFT_CARD_VALUE = "$5";
 
 export default function GiftCardModal({
@@ -56,7 +56,7 @@ export default function GiftCardModal({
 
       // Show success message
       setShowSuccess(true);
-      
+
       // Call success callback to refresh profile
       onRedeemSuccess();
 
@@ -213,4 +213,3 @@ export default function GiftCardModal({
     </div>
   );
 }
-

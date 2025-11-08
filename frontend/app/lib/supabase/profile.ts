@@ -53,7 +53,9 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at")
+    .select(
+      "id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at"
+    )
     .eq("id", userId)
     .single();
 
@@ -73,7 +75,9 @@ export async function getPublicProfile(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at")
+    .select(
+      "id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at"
+    )
     .eq("id", userId)
     .single();
 
@@ -93,7 +97,9 @@ export async function getProfiles(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at")
+    .select(
+      "id, name, about_me, avatar_url, rating, achievements, rewards, created_at, updated_at"
+    )
     .in("id", userIds);
 
   if (error || !data) {
@@ -191,11 +197,9 @@ export async function deleteProfilePicture(
 }
 
 /**
- * Redeem gift card (subtract 50 points from rewards)
+ * Redeem gift card (subtract 500 points from rewards)
  */
-export async function redeemGiftCard(
-  userId: string
-): Promise<{ error: any }> {
+export async function redeemGiftCard(userId: string): Promise<{ error: any }> {
   const supabase = createClient();
 
   // First check if user has enough points
@@ -210,14 +214,16 @@ export async function redeemGiftCard(
   }
 
   const currentRewards = profile.rewards || 0;
-  if (currentRewards < 50) {
-    return { error: new Error("Insufficient rewards points. Need 50 points.") };
+  if (currentRewards < 500) {
+    return {
+      error: new Error("Insufficient rewards points. Need 500 points."),
+    };
   }
 
-  // Subtract 50 points
+  // Subtract 500 points
   const { error } = await supabase
     .from("profiles")
-    .update({ rewards: currentRewards - 50 })
+    .update({ rewards: currentRewards - 500 })
     .eq("id", userId);
 
   return { error };
@@ -246,7 +252,9 @@ export async function addRewardsPoints(
   const currentRewards = profile.rewards || 0;
   const newRewards = currentRewards + points;
 
-  console.log(`Updating rewards for user ${userId}: ${currentRewards} + ${points} = ${newRewards}`);
+  console.log(
+    `Updating rewards for user ${userId}: ${currentRewards} + ${points} = ${newRewards}`
+  );
 
   // Update rewards
   const { error, data: updateData } = await supabase
@@ -258,7 +266,10 @@ export async function addRewardsPoints(
   if (error) {
     console.error("Error updating rewards:", error);
   } else {
-    console.log("Successfully updated rewards. New value:", updateData?.[0]?.rewards);
+    console.log(
+      "Successfully updated rewards. New value:",
+      updateData?.[0]?.rewards
+    );
   }
 
   return { error };

@@ -608,19 +608,19 @@ export default function AccountPage() {
                         Value
                       </p>
                       <p className="text-lg md:text-xl font-semibold text-black">
-                        ${((profile.rewards || 0) / 10).toFixed(2)}
+                        ${((profile.rewards || 0) / 100).toFixed(2)}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setIsGiftCardModalOpen(true)}
-                    disabled={(profile.rewards || 0) < 50}
+                    disabled={(profile.rewards || 0) < 500}
                     className="w-full px-4 py-2 bg-[#367230] text-white text-sm uppercase tracking-widest hover:bg-[#244b20] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#367230] border border-black"
                   >
                     Redeem Gift Card
                   </button>
                   <p className="text-xs text-gray-600 mt-2 text-center">
-                    50 points = $5 gift card
+                    500 points = $5 gift card
                   </p>
                 </div>
               </div>

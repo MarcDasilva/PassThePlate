@@ -269,65 +269,83 @@ export default function PostDonationModal({
         return;
       }
 
-      // Calculate and add rewards points based on estimated value from image
-      // Only if there's an image uploaded
-      if (uploadedImageUrl && imageFile) {
-        try {
-          // Convert image to base64 for Gemini analysis
-          const imageBase64 = await convertImageToBase64(imageFile);
+      // Calculate and add rewards points based on estimated value
+      // Use Gemini to evaluate price based on image and text (title/description)
+      try {
+        let imageBase64: string | null = null;
+        if (imageFile) {
+          imageBase64 = await convertImageToBase64(imageFile);
+        }
 
-          // Call Gemini to get estimated value
-          const describeResponse = await fetch("/api/describe-image", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ imageBase64 }),
-          });
+        // Call API to get estimated value from Gemini (considers both image and text)
+        const valueResponse = await fetch("/api/estimate-donation-value", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageBase64,
+            title: title.trim(),
+            description: description.trim(),
+            category: category.trim() || null,
+          }),
+        });
 
-          if (describeResponse.ok) {
-            const describeData = await describeResponse.json();
-            const estimatedValue = describeData.estimated_value || 0;
+        if (valueResponse.ok) {
+          const valueData = await valueResponse.json();
+          const estimatedValue = valueData.estimated_value || 0;
 
+          console.log(
+            "Estimated value from Gemini during posting:",
+            estimatedValue
+          );
+
+          if (estimatedValue > 0) {
+            // Calculate points: 1 dollar = 10 points, rounded to nearest 0.1
+            const points = Math.round(estimatedValue * 10 * 10) / 10; // Round to nearest 0.1
+            const pointsRounded = Math.round(points); // Round to integer for database storage
             console.log(
-              "Estimated value from Gemini during posting:",
+              "Calculated points to add:",
+              pointsRounded,
+              "(rounded from",
+              points,
+              ") for estimated value:",
               estimatedValue
             );
 
-            if (estimatedValue > 0) {
-              // Calculate points: value / 10, rounded to nearest whole number
-              const points = Math.round(estimatedValue / 10);
-              console.log("Calculated points to add:", points);
-
-              if (points > 0) {
-                console.log("Adding rewards points to user:", user.id);
-                const { error: rewardsError } = await addRewardsPoints(
-                  user.id,
-                  points
+            if (pointsRounded > 0) {
+              console.log("Adding rewards points to user:", user.id);
+              const { error: rewardsError } = await addRewardsPoints(
+                user.id,
+                pointsRounded
+              );
+              if (rewardsError) {
+                console.error("Failed to add rewards points:", rewardsError);
+                alert(
+                  `Warning: Failed to add rewards points: ${
+                    rewardsError.message || rewardsError
+                  }`
                 );
-                if (rewardsError) {
-                  console.error("Failed to add rewards points:", rewardsError);
-                  // Don't fail the donation creation if rewards update fails
-                } else {
-                  console.log("Successfully added rewards points!");
-                }
+                // Don't fail the donation creation if rewards update fails
               } else {
-                console.log("Points calculated as 0, not adding rewards");
+                console.log("Successfully added rewards points!");
               }
             } else {
-              console.log("Estimated value is 0, not adding rewards");
+              console.log("Points calculated as 0, not adding rewards");
             }
           } else {
-            console.log(
-              "Failed to get estimated value from Gemini, skipping rewards"
-            );
+            console.log("Estimated value is 0, not adding rewards");
           }
-        } catch (err) {
-          console.error("Error getting estimated value for rewards:", err);
-          // Don't fail the donation creation if rewards calculation fails
+        } else {
+          const errorData = await valueResponse.json().catch(() => ({}));
+          console.error(
+            "Failed to get estimated value from Gemini:",
+            errorData.error || "Unknown error"
+          );
         }
-      } else {
-        console.log("No image uploaded, skipping rewards calculation");
+      } catch (err: any) {
+        console.error("Error getting estimated value for rewards:", err);
+        // Don't fail the donation creation if rewards calculation fails
       }
 
       // Success - close modal and refresh donations
