@@ -51,12 +51,22 @@ export async function POST(request: NextRequest) {
         {
           parts: [
             {
-              text: `Analyze this image of a donation item and provide a JSON response with the following structure:
+              text: `Analyze this image of a donation item and provide a JSON response with the following structure. You MUST include all fields, including expiry_date:
 {
   "title": "A short, descriptive title (max 50 characters)",
-  "description": "A detailed description of the item, its condition, and what makes it suitable for donation (2-3 sentences)",
-  "category": "A single category name (e.g., "Food", "Clothing", "Furniture", "Electronics", "Books", "Toys", "Household Items")"
+  "description": "A brief description of the item and its condition (1-2 sentences)",
+  "category": "A single category name (e.g., "Food", "Clothing", "Furniture", "Electronics", "Books", "Toys", "Household Items")",
+  "expiry_date": "YYYY-MM-DD format date OR null"
 }
+
+IMPORTANT RULES FOR expiry_date:
+- If the item is perishable food (fresh produce, dairy, meat, baked goods, etc.), predict when it will expire based on:
+  * The item type and typical shelf life
+  * Visible condition (freshness, packaging, expiration labels if visible)
+  * Today's date is ${new Date().toISOString().split("T")[0]}
+  * Return a future date in YYYY-MM-DD format (e.g., "2024-12-25")
+- If the item is non-perishable (canned goods, dry goods, clothing, furniture, electronics, etc.), return null
+- ALWAYS include the expiry_date field in your JSON response (either a date string or null)
 
 Be specific and helpful. Focus on what the item is, its condition, and why someone would want it.`,
             },
@@ -155,6 +165,11 @@ Be specific and helpful. Focus on what the item is, its condition, and why someo
         .replace(/```\n?/g, "")
         .trim();
       jsonData = JSON.parse(cleanedText);
+
+      // Ensure expiry_date is always present (even if null)
+      if (!jsonData.hasOwnProperty("expiry_date")) {
+        jsonData.expiry_date = null;
+      }
     } catch (parseError) {
       // If JSON parsing fails, try to extract fields manually
       console.warn("Failed to parse JSON, attempting manual extraction");
@@ -162,10 +177,26 @@ Be specific and helpful. Focus on what the item is, its condition, and why someo
       const descMatch = text.match(/"description":\s*"([^"]+)"/);
       const catMatch = text.match(/"category":\s*"([^"]+)"/);
 
+      // Improved regex to match expiry_date as string or null
+      const expiryStringMatch = text.match(/"expiry_date":\s*"([^"]+)"/);
+      const expiryNullMatch = text.match(/"expiry_date":\s*null/);
+
+      let expiryDate = null;
+      if (expiryStringMatch && expiryStringMatch[1]) {
+        // Validate date format (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (dateRegex.test(expiryStringMatch[1])) {
+          expiryDate = expiryStringMatch[1];
+        }
+      } else if (expiryNullMatch) {
+        expiryDate = null;
+      }
+
       jsonData = {
         title: titleMatch ? titleMatch[1] : "",
         description: descMatch ? descMatch[1] : "",
         category: catMatch ? catMatch[1] : "",
+        expiry_date: expiryDate,
       };
     }
 

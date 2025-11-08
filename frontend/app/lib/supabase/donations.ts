@@ -34,10 +34,15 @@ export async function uploadDonationImage(
 
   if (error) {
     // Provide helpful error message for missing bucket
-    if (error.message?.includes("Bucket not found") || error.message?.includes("The resource was not found")) {
-      return { 
-        data: null, 
-        error: new Error("Storage bucket 'donations' not found. Please create it in your Supabase dashboard under Storage.") 
+    if (
+      error.message?.includes("Bucket not found") ||
+      error.message?.includes("The resource was not found")
+    ) {
+      return {
+        data: null,
+        error: new Error(
+          "Storage bucket 'donations' not found. Please create it in your Supabase dashboard under Storage."
+        ),
       };
     }
     return { data: null, error };
@@ -61,6 +66,7 @@ export interface Donation {
   longitude: number;
   address: string | null;
   image_url: string | null;
+  expiry_date: string | null;
   status: "available" | "claimed" | "completed";
   created_at: string;
   updated_at: string;
@@ -137,6 +143,7 @@ export async function createDonation(
     longitude: number;
     address?: string | null;
     image_url?: string | null;
+    expiry_date?: string | null;
   }
 ): Promise<{ data: Donation | null; error: any }> {
   const supabase = createClient();
@@ -151,6 +158,7 @@ export async function createDonation(
       longitude: donation.longitude,
       address: donation.address || null,
       image_url: donation.image_url || null,
+      expiry_date: donation.expiry_date || null,
       status: "available",
     })
     .select()
@@ -163,4 +171,3 @@ export async function createDonation(
 
   return { data: data as Donation, error: null };
 }
-

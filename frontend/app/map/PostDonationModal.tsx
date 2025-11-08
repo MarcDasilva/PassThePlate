@@ -25,6 +25,7 @@ export default function PostDonationModal({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [address, setAddress] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -41,6 +42,7 @@ export default function PostDonationModal({
       setDescription("");
       setCategory("");
       setAddress("");
+      setExpiryDate("");
       setImageFile(null);
       setImagePreview(null);
       setError(null);
@@ -120,6 +122,10 @@ export default function PostDonationModal({
       if (data.category) {
         setCategory(data.category);
       }
+      // Always set expiry_date, even if null (to clear the field)
+      if (data.hasOwnProperty("expiry_date")) {
+        setExpiryDate(data.expiry_date || "");
+      }
     } catch (err: any) {
       console.error("Error describing image:", err);
       setError(err.message || "Failed to describe image with AI");
@@ -192,6 +198,7 @@ export default function PostDonationModal({
         longitude: currentLocation[1],
         address: address.trim() || null,
         image_url: uploadedImageUrl,
+        expiry_date: expiryDate || null,
       });
 
       if (createError) {
@@ -344,7 +351,7 @@ export default function PostDonationModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
-                rows={4}
+                rows={2}
                 className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50 resize-none"
                 placeholder="Describe what you're donating"
               />
@@ -369,7 +376,7 @@ export default function PostDonationModal({
 
             <div>
               <label
-                htmlFor="Additional Info"
+                htmlFor="address"
                 className="block text-sm uppercase tracking-widest mb-2 text-black"
               >
                 Address
@@ -381,6 +388,22 @@ export default function PostDonationModal({
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
                 placeholder="Pickup location details"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="expiryDate"
+                className="block text-sm uppercase tracking-widest mb-2 text-black"
+              >
+                Expiry Date
+              </label>
+              <input
+                id="expiryDate"
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="w-full bg-transparent border-b-2 border-black py-2 px-0 focus:outline-none focus:border-[#367230] text-black placeholder-black/50"
               />
             </div>
 
