@@ -47,10 +47,10 @@ export default function DonationSliderModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 border border-gray-100 transition-all duration-300 scale-100"
+        className="bg-white max-w-md w-full mx-4 border border-black transition-all duration-300 scale-100"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-gray-200 bg-red-900 bg-opacity-10">
+        <div className="p-6 border-b border-black bg-red-900 bg-opacity-10">
           <h3 className="text-xl font-bold tracking-tighter text-black">
             Send Donation
           </h3>
@@ -67,7 +67,7 @@ export default function DonationSliderModal({
               step="1"
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-900"
+              className="w-full h-2 bg-gray-200 appearance-none cursor-pointer accent-red-900"
               style={{
                 background: `linear-gradient(to right, #dc2626 0%, #dc2626 ${
                   ((amount - 1) / 9) * 100

@@ -1315,10 +1315,10 @@ export default function MapPage() {
           onClick={() => setIsMyPostingsOpen(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-gray-100 transition-all duration-300 scale-100"
+            className="bg-white max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-black transition-all duration-300 scale-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-200 bg-[#367230] bg-opacity-10">
+            <div className="p-6 border-b border-black bg-[#367230] bg-opacity-10">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold tracking-tighter text-black">
                   My Postings
@@ -1360,7 +1360,7 @@ export default function MapPage() {
                   {userDonations.map((donation) => (
                     <div
                       key={donation.id}
-                      className="bg-[#367230] bg-opacity-5 rounded-lg p-4 border border-[#367230] border-opacity-20 hover:border-opacity-30 transition-all"
+                      className="bg-[#367230] bg-opacity-5 p-4 border border-black"
                     >
                       <div className="flex gap-4">
                         <div className="flex-shrink-0 relative">
@@ -1402,7 +1402,7 @@ export default function MapPage() {
                               {donation.title}
                             </h3>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                              className={`px-2 py-1 text-xs font-medium flex-shrink-0 border border-black ${
                                 donation.status === "available"
                                   ? "bg-[#367230] bg-opacity-20 text-[#367230]"
                                   : donation.status === "claimed"
@@ -1418,12 +1418,12 @@ export default function MapPage() {
                           </p>
                           <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
                             {donation.category && (
-                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 rounded border border-[#367230] border-opacity-20 text-black">
+                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 border border-black text-black">
                                 {donation.category}
                               </span>
                             )}
                             {donation.expiry_date && (
-                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 rounded border border-[#367230] border-opacity-20 text-black">
+                              <span className="bg-[#367230] bg-opacity-10 px-2 py-1 border border-black text-black">
                                 Expires:{" "}
                                 {new Date(
                                   donation.expiry_date
@@ -1449,10 +1449,10 @@ export default function MapPage() {
           onClick={() => setIsPickingUpOpen(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-gray-100 transition-all duration-300 scale-100"
+            className="bg-white max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-black transition-all duration-300 scale-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-200 bg-[#367230] bg-opacity-10">
+            <div className="p-6 border-b border-black bg-[#367230] bg-opacity-10">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tighter text-black">
@@ -1499,7 +1499,7 @@ export default function MapPage() {
                   {pickingUpDonations.map((donation) => (
                     <div
                       key={donation.id}
-                      className="bg-[#367230] bg-opacity-5 rounded-lg p-4 border border-[#367230] border-opacity-20 hover:border-opacity-30 transition-all"
+                      className="bg-[#367230] bg-opacity-5 p-4 border border-black"
                     >
                       <div className="flex gap-4">
                         <div className="flex-shrink-0">
@@ -1508,11 +1508,11 @@ export default function MapPage() {
                               <img
                                 src={donation.image_url}
                                 alt={donation.title}
-                                className="w-20 h-20 md:w-24 md:h-24 rounded-lg object-cover border-2 border-[#367230] border-opacity-20"
+                                className="w-20 h-20 md:w-24 md:h-24 object-cover border-2 border-black"
                               />
                               <button
                                 onClick={() => setShowTipComingSoon(true)}
-                                className="w-20 md:w-24 mt-2 px-2 py-1.5 bg-[#367230] text-white text-xs font-medium rounded hover:bg-[#244b20] transition-colors"
+                                className="w-20 md:w-24 mt-2 px-2 py-1.5 bg-[#367230] text-white text-xs font-medium border border-black hover:bg-[#244b20] transition-colors"
                               >
                                 Tip
                               </button>
@@ -1525,7 +1525,7 @@ export default function MapPage() {
                               {donation.title}
                             </h3>
                             <div className="flex items-center gap-2">
-                              <span className="px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 bg-yellow-100 text-yellow-700">
+                              <span className="px-2 py-1 text-xs font-medium flex-shrink-0 bg-yellow-100 text-yellow-700 border border-black">
                                 claimed
                               </span>
                               <button
@@ -1585,10 +1585,10 @@ export default function MapPage() {
           onClick={() => setShowPinModal(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-gray-100 transition-all duration-300 scale-100"
+            className="bg-white max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-black transition-all duration-300 scale-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-200 bg-red-900 bg-opacity-10">
+            <div className="p-6 border-b border-black bg-red-900 bg-opacity-10">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold tracking-tighter text-black">
                   Requests in Area ({selectedPinCount})
@@ -1613,14 +1613,14 @@ export default function MapPage() {
                   {selectedPinRequests.map((request) => (
                     <div
                       key={request.id}
-                      className="bg-red-900 bg-opacity-5 rounded-lg p-4 border border-red-900 border-opacity-20 hover:border-opacity-30 transition-all"
+                      className="bg-red-900 bg-opacity-5 p-4 border border-black"
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h3 className="font-semibold text-black text-sm md:text-base truncate">
                           {request.title}
                         </h3>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                          className={`px-2 py-1 text-xs font-medium flex-shrink-0 border border-black ${
                             request.status === "open"
                               ? "bg-red-900 bg-opacity-20 text-red-900"
                               : request.status === "fulfilled"
@@ -1636,12 +1636,12 @@ export default function MapPage() {
                       </p>
                       <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
                         {request.address && (
-                          <span className="bg-red-900 bg-opacity-10 px-2 py-1 rounded border border-red-900 border-opacity-20 text-black">
+                          <span className="bg-red-900 bg-opacity-10 px-2 py-1 border border-black text-black">
                             📍 {request.address}
                           </span>
                         )}
                         {request.phone_number && (
-                          <span className="bg-red-900 bg-opacity-10 px-2 py-1 rounded border border-red-900 border-opacity-20 text-black">
+                          <span className="bg-red-900 bg-opacity-10 px-2 py-1 border border-black text-black">
                             📞 {request.phone_number}
                           </span>
                         )}
@@ -1651,7 +1651,7 @@ export default function MapPage() {
                 </div>
               )}
             </div>
-            <div className="p-6 border-t border-gray-200">
+            <div className="p-6 border-t border-black">
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowPinModal(false)}
@@ -1736,10 +1736,10 @@ export default function MapPage() {
           onClick={() => setIsMyRequestsOpen(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-gray-100 transition-all duration-300 scale-100"
+            className="bg-white max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden border border-black transition-all duration-300 scale-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-200 bg-red-900 bg-opacity-10">
+            <div className="p-6 border-b border-black bg-red-900 bg-opacity-10">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold tracking-tighter text-black">
                   My Requests
@@ -1781,7 +1781,7 @@ export default function MapPage() {
                   {userRequests.map((request) => (
                     <div
                       key={request.id}
-                      className="bg-red-900 bg-opacity-5 rounded-lg p-4 border border-red-900 border-opacity-20 hover:border-opacity-30 transition-all"
+                      className="bg-red-900 bg-opacity-5 p-4 border border-black"
                     >
                       <div className="flex gap-4">
                         <div className="flex-1 min-w-0">
@@ -1790,7 +1790,7 @@ export default function MapPage() {
                               {request.title}
                             </h3>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                              className={`px-2 py-1 text-xs font-medium flex-shrink-0 border border-black ${
                                 request.status === "open"
                                   ? "bg-red-900 bg-opacity-20 text-red-900"
                                   : request.status === "fulfilled"
@@ -1806,12 +1806,12 @@ export default function MapPage() {
                           </p>
                           <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-2">
                             {request.address && (
-                              <span className="bg-red-900 bg-opacity-10 px-2 py-1 rounded border border-red-900 border-opacity-20 text-black">
+                              <span className="bg-red-900 bg-opacity-10 px-2 py-1 border border-black text-black">
                                 📍 {request.address}
                               </span>
                             )}
                             {request.phone_number && (
-                              <span className="bg-red-900 bg-opacity-10 px-2 py-1 rounded border border-red-900 border-opacity-20 text-black">
+                              <span className="bg-red-900 bg-opacity-10 px-2 py-1 border border-black text-black">
                                 📞 {request.phone_number}
                               </span>
                             )}
@@ -1819,7 +1819,7 @@ export default function MapPage() {
                           <button
                             onClick={() => handleDeleteRequestClick(request.id)}
                             disabled={deletingRequestId === request.id}
-                            className="mt-2 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-xs text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="mt-2 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-xs text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 border border-black"
                             title="Delete"
                           >
                             {deletingRequestId === request.id ? (
