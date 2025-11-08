@@ -9,6 +9,7 @@ import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
 import { hasProfile, getProfile, Profile } from "@/app/lib/supabase/profile";
 import { getAvailableDonations, Donation } from "@/app/lib/supabase/donations";
+import PostDonationModal from "./PostDonationModal";
 import "leaflet/dist/leaflet.css";
 
 // Dynamically import the map component to avoid SSR issues
@@ -36,6 +37,7 @@ export default function MapPage() {
   );
   const [locationUnavailable, setLocationUnavailable] = useState(false);
   const [donations, setDonations] = useState<Donation[]>([]);
+  const [isPostDonationModalOpen, setIsPostDonationModalOpen] = useState(false);
 
   useEffect(() => {
     const checkAuthAndProfile = async () => {
@@ -116,8 +118,19 @@ export default function MapPage() {
   }, [user, checkingProfile]);
 
   const handlePostDonation = () => {
-    // TODO: Navigate to post donation page or open modal
-    console.log("Post a Donation clicked");
+    if (!userLocation) {
+      alert("Please enable location services to post a donation");
+      return;
+    }
+    setIsPostDonationModalOpen(true);
+  };
+
+  const handleDonationPosted = async () => {
+    // Refresh donations list
+    if (user && !checkingProfile) {
+      const availableDonations = await getAvailableDonations();
+      setDonations(availableDonations);
+    }
   };
 
   const handleFilter = () => {
@@ -184,6 +197,14 @@ export default function MapPage() {
           </div>
         </div>
       </div>
+
+      {/* Post Donation Modal */}
+      <PostDonationModal
+        isOpen={isPostDonationModalOpen}
+        onClose={() => setIsPostDonationModalOpen(false)}
+        onSuccess={handleDonationPosted}
+        currentLocation={userLocation}
+      />
     </main>
   );
 }

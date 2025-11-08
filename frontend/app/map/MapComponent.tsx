@@ -133,9 +133,27 @@ export default function MapComponent({
 
       // Create popup content with escaped HTML and view profile button
       const popupContent = document.createElement("div");
-      popupContent.style.minWidth = "200px";
+      popupContent.style.minWidth = "250px";
+      popupContent.style.maxWidth = "400px";
       popupContent.innerHTML = `
         <div>
+          ${
+            donation.image_url
+              ? `<img 
+                  src="${escapeHtml(donation.image_url)}" 
+                  alt="${escapeHtml(donation.title)}" 
+                  style="
+                    width: 100%; 
+                    height: 200px; 
+                    object-fit: cover; 
+                    border-radius: 4px; 
+                    margin-bottom: 12px;
+                    border: 1px solid #ddd;
+                  "
+                  onerror="this.style.display='none'"
+                />`
+              : ""
+          }
           <h3 style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px;">${escapeHtml(
             donation.title
           )}</h3>
