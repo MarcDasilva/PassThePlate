@@ -47,7 +47,9 @@ export default function RequestDonationModal({
     }
 
     if (!currentLocation) {
-      setLocationError("Location is required. Please enable location services.");
+      setLocationError(
+        "Location is required. Please enable location services."
+      );
       return;
     }
 
@@ -113,7 +115,10 @@ export default function RequestDonationModal({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(85vh-100px)]">
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 overflow-y-auto max-h-[calc(85vh-100px)]"
+        >
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
@@ -199,7 +204,8 @@ export default function RequestDonationModal({
 
             {currentLocation && (
               <div className="text-xs text-gray-500">
-                Location: {currentLocation[0].toFixed(6)}, {currentLocation[1].toFixed(6)}
+                Location: {currentLocation[0].toFixed(6)},{" "}
+                {currentLocation[1].toFixed(6)}
               </div>
             )}
           </div>
@@ -225,4 +231,3 @@ export default function RequestDonationModal({
     </div>
   );
 }
-

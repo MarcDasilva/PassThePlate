@@ -3,7 +3,7 @@
 import React from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { ROUTES } from "@/app/lib/routes";
 import { Navbar } from "@/app/components/navbar";
@@ -27,6 +27,11 @@ import {
   getAllMonetaryDonations,
   MonetaryDonation,
 } from "@/app/lib/supabase/monetary-donations";
+import {
+  getOrCreateLocationName,
+  getLocationNamesBatch,
+  convertCoordinatesToLocationName,
+} from "@/app/lib/supabase/locations";
 import PostDonationModal from "./PostDonationModal";
 import RequestDonationModal from "./RequestDonationModal";
 import DonationSliderModal from "./DonationSliderModal";
@@ -145,7 +150,6 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
       requests: Request[];
     }>
   >([]);
-  const controlsInitializedRef = useRef(false);
 
   useEffect(() => {
     // Generate grey dots symmetrically across the background
@@ -165,21 +169,20 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
     setDots(generatedDots);
   }, []);
 
-  // Memoize pins to prevent unnecessary recalculations
-  const memoizedPins = useMemo(() => {
+  useEffect(() => {
+    // Group requests by location and create pins
     if (requests.length > 0) {
-      return groupRequestsByLocation(requests);
+      const groupedRequests = groupRequestsByLocation(requests);
+      setPins(groupedRequests);
+    } else {
+      setPins([]);
     }
-    return [];
   }, [requests]);
 
   useEffect(() => {
-    setPins(memoizedPins);
-  }, [memoizedPins]);
-
-  useEffect(() => {
-    if (globeRef.current && !controlsInitializedRef.current) {
+    if (globeRef.current) {
       const controls = globeRef.current.controls();
+      const camera = globeRef.current.camera();
       // Enable auto-rotate
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.5;
@@ -189,103 +192,8 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
       controls.maxDistance = 2000;
       // Make zoom more sensitive for better control
       controls.zoomSpeed = 1.2;
-      controlsInitializedRef.current = true;
     }
   }, []);
-
-  // Memoize the htmlElement function to prevent recreating all elements on every render
-  const htmlElement = useCallback(
-    (d: any) => {
-      // Calculate max count for intensity scaling
-      const maxCount = Math.max(...pins.map((p) => p.count), 1);
-      const intensity = maxCount > 0 ? d.count / maxCount : 0;
-
-      // Scale red intensity based on request count (0.3 to 1.0)
-      const minIntensity = 0.3;
-      const maxIntensity = 1.0;
-      const scaledIntensity =
-        minIntensity + (maxIntensity - minIntensity) * intensity;
-
-      // Calculate opacity values based on intensity
-      const centerOpacity = 0.4 + 0.4 * intensity; // 0.4 to 0.8
-      const gradientCenter = 0.5 + 0.3 * intensity; // 0.5 to 0.8
-      const gradient30 = 0.3 + 0.2 * intensity; // 0.3 to 0.5
-      const gradient60 = 0.15 + 0.15 * intensity; // 0.15 to 0.3
-
-      const el = document.createElement("div");
-      el.style.width = "50px";
-      el.style.height = "50px";
-      el.style.cursor = "pointer";
-      el.style.position = "relative";
-      el.style.pointerEvents = "auto";
-      el.style.zIndex = "1000";
-      el.style.display = "flex";
-      el.style.alignItems = "center";
-      el.style.justifyContent = "center";
-      el.innerHTML = `
-        <div style="
-          width: 50px;
-          height: 50px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(220, 38, 38, ${gradientCenter}) 0%, rgba(220, 38, 38, ${gradient30}) 30%, rgba(220, 38, 38, ${gradient60}) 60%, rgba(220, 38, 38, 0) 100%);
-          pointer-events: none;
-          position: relative;
-        ">
-          <div style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: rgba(220, 38, 38, ${centerOpacity});
-            box-shadow: 0 0 4px rgba(220, 38, 38, ${centerOpacity * 0.5});
-          "></div>
-        </div>
-      `;
-
-      // Store the data in the element for access in the click handler
-      (el as any).__data = d;
-
-      // Use addEventListener with capture phase to ensure it fires
-      const clickHandler = (e: Event) => {
-        e.stopPropagation();
-        e.preventDefault();
-        const data = (e.currentTarget as any).__data;
-        if (onPinClick && data) {
-          onPinClick(data.count, data.requests, [data.lat, data.lng]);
-        }
-      };
-
-      // Try multiple event types to ensure clicks work
-      el.addEventListener("click", clickHandler, true);
-      el.addEventListener(
-        "mousedown",
-        (e) => {
-          e.stopPropagation();
-        },
-        true
-      );
-
-      // Also try touch events for mobile
-      el.addEventListener(
-        "touchend",
-        (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          const data = (e.currentTarget as any).__data;
-          if (onPinClick && data) {
-            onPinClick(data.count, data.requests, [data.lat, data.lng]);
-          }
-        },
-        true
-      );
-
-      return el;
-    },
-    [pins, onPinClick]
-  );
 
   return (
     <div className="relative w-full h-full bg-black">
@@ -316,7 +224,95 @@ function WorldGlobe({ requests, onPinClick }: WorldGlobeProps) {
           htmlElementsData={pins}
           htmlLat="lat"
           htmlLng="lng"
-          htmlElement={htmlElement}
+          htmlElement={(d: any) => {
+            // Calculate max count for intensity scaling
+            const maxCount = Math.max(...pins.map((p) => p.count), 1);
+            const intensity = maxCount > 0 ? d.count / maxCount : 0;
+
+            // Scale red intensity based on request count (0.3 to 1.0)
+            const minIntensity = 0.3;
+            const maxIntensity = 1.0;
+            const scaledIntensity =
+              minIntensity + (maxIntensity - minIntensity) * intensity;
+
+            // Calculate opacity values based on intensity
+            const centerOpacity = 0.4 + 0.4 * intensity; // 0.4 to 0.8
+            const gradientCenter = 0.5 + 0.3 * intensity; // 0.5 to 0.8
+            const gradient30 = 0.3 + 0.2 * intensity; // 0.3 to 0.5
+            const gradient60 = 0.15 + 0.15 * intensity; // 0.15 to 0.3
+
+            const el = document.createElement("div");
+            el.style.width = "50px";
+            el.style.height = "50px";
+            el.style.cursor = "pointer";
+            el.style.position = "relative";
+            el.style.pointerEvents = "auto";
+            el.style.zIndex = "1000";
+            el.style.display = "flex";
+            el.style.alignItems = "center";
+            el.style.justifyContent = "center";
+            el.innerHTML = `
+              <div style="
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(220, 38, 38, ${gradientCenter}) 0%, rgba(220, 38, 38, ${gradient30}) 30%, rgba(220, 38, 38, ${gradient60}) 60%, rgba(220, 38, 38, 0) 100%);
+                pointer-events: none;
+                position: relative;
+              ">
+                <div style="
+                  position: absolute;
+                  top: 50%;
+                  left: 50%;
+                  transform: translate(-50%, -50%);
+                  width: 4px;
+                  height: 4px;
+                  border-radius: 50%;
+                  background: rgba(220, 38, 38, ${centerOpacity});
+                  box-shadow: 0 0 4px rgba(220, 38, 38, ${centerOpacity * 0.5});
+                "></div>
+              </div>
+            `;
+
+            // Store the data in the element for access in the click handler
+            (el as any).__data = d;
+
+            // Use addEventListener with capture phase to ensure it fires
+            const clickHandler = (e: Event) => {
+              e.stopPropagation();
+              e.preventDefault();
+              const data = (e.currentTarget as any).__data;
+              if (onPinClick && data) {
+                onPinClick(data.count, data.requests, [data.lat, data.lng]);
+              }
+            };
+
+            // Try multiple event types to ensure clicks work
+            el.addEventListener("click", clickHandler, true);
+            el.addEventListener(
+              "mousedown",
+              (e) => {
+                e.stopPropagation();
+              },
+              true
+            );
+
+            // Also try touch events for mobile
+            el.addEventListener(
+              "touchend",
+              (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const data = (e.currentTarget as any).__data;
+                if (onPinClick && data) {
+                  onPinClick(data.count, data.requests, [data.lat, data.lng]);
+                }
+              },
+              true
+            );
+
+            return el;
+          }}
         />
       </div>
     </div>
@@ -328,24 +324,13 @@ interface ConnectionMapProps {
   donations: MonetaryDonation[];
 }
 
-// Helper function to reverse geocode coordinates to get location name
+// Helper function to get location name from database or convert using Gemini
+// This function uses the locations table which is populated by Gemini
 async function getLocationName(lat: number, lng: number): Promise<string> {
   try {
-    const response = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
-    );
-    const data = await response.json();
-
-    const parts = [];
-    if (data.city) parts.push(data.city);
-    if (data.principalSubdivision) parts.push(data.principalSubdivision);
-    if (data.countryName) parts.push(data.countryName);
-
-    return parts.length > 0
-      ? parts.join(", ")
-      : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    return await getOrCreateLocationName(lat, lng);
   } catch (error) {
-    console.error("Error reverse geocoding:", error);
+    console.error("Error getting location name:", error);
     return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
   }
 }
@@ -363,7 +348,6 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
   const [scrollReady, setScrollReady] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const horizontalScrollRef = useRef<HTMLDivElement>(null);
-  const controlsInitializedRef = useRef(false);
 
   useEffect(() => {
     // Generate grey dots symmetrically across the background
@@ -383,15 +367,15 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
   }, []);
 
   useEffect(() => {
-    if (globeRef.current && !controlsInitializedRef.current) {
+    if (globeRef.current) {
       const controls = globeRef.current.controls();
+      const camera = globeRef.current.camera();
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.5;
       controls.enableZoom = true;
       controls.minDistance = 100;
       controls.maxDistance = 2000;
       controls.zoomSpeed = 1.2;
-      controlsInitializedRef.current = true;
     }
   }, []);
 
@@ -403,7 +387,7 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
     }
   }, [donations]);
 
-  // Fetch location names for all donations
+  // Fetch location names for all donations - optimized with batch fetching
   useEffect(() => {
     const fetchLocationNames = async () => {
       setLocationNamesLoaded(false);
@@ -412,14 +396,74 @@ function ConnectionMap({ donations }: ConnectionMapProps) {
       const donationsToProcess =
         shuffledDonations.length > 0 ? shuffledDonations : donations;
 
-      for (const donation of donationsToProcess) {
-        const [fromName, toName] = await Promise.all([
-          getLocationName(donation.from_latitude, donation.from_longitude),
-          getLocationName(donation.to_latitude, donation.to_longitude),
-        ]);
+      if (donationsToProcess.length === 0) {
+        setLocationNames(newLocationNames);
+        setLocationNamesLoaded(true);
+        return;
+      }
+
+      // Collect all unique coordinates
+      const allCoordinates = new Set<string>();
+
+      donationsToProcess.forEach((donation) => {
+        const fromKey = `${donation.from_latitude},${donation.from_longitude}`;
+        const toKey = `${donation.to_latitude},${donation.to_longitude}`;
+
+        allCoordinates.add(fromKey);
+        allCoordinates.add(toKey);
+      });
+
+      // Convert Set to Array for batch fetching
+      const coordArray = Array.from(allCoordinates).map((key) => {
+        const [lat, lng] = key.split(",").map(Number);
+        return { latitude: lat, longitude: lng };
+      });
+
+      // Batch fetch all location names from database
+      const cachedLocations = await getLocationNamesBatch(coordArray);
+
+      // Find coordinates that need to be converted
+      const missingCoords: Array<{ latitude: number; longitude: number }> = [];
+      coordArray.forEach((coord) => {
+        const key = `${coord.latitude},${coord.longitude}`;
+        if (!cachedLocations.has(key)) {
+          missingCoords.push(coord);
+        }
+      });
+
+      // Convert missing coordinates using Gemini API (in parallel, but limited)
+      const conversionPromises = missingCoords.map((coord) =>
+        convertCoordinatesToLocationName(coord.latitude, coord.longitude).then(
+          (name) => ({
+            key: `${coord.latitude},${coord.longitude}`,
+            name,
+          })
+        )
+      );
+
+      const convertedLocations = await Promise.all(conversionPromises);
+      convertedLocations.forEach(({ key, name }) => {
+        cachedLocations.set(key, name);
+      });
+
+      // Build the location names map for donations
+      donationsToProcess.forEach((donation) => {
+        const fromKey = `${donation.from_latitude},${donation.from_longitude}`;
+        const toKey = `${donation.to_latitude},${donation.to_longitude}`;
+
+        const fromName =
+          cachedLocations.get(fromKey) ||
+          `${donation.from_latitude.toFixed(
+            4
+          )}, ${donation.from_longitude.toFixed(4)}`;
+        const toName =
+          cachedLocations.get(toKey) ||
+          `${donation.to_latitude.toFixed(4)}, ${donation.to_longitude.toFixed(
+            4
+          )}`;
 
         newLocationNames.set(donation.id, { from: fromName, to: toName });
-      }
+      });
 
       setLocationNames(newLocationNames);
       // Wait for next frame to ensure DOM has updated
@@ -1239,17 +1283,6 @@ export default function MapPage() {
     return R * c;
   };
 
-  // Memoize the pin click handler to prevent unnecessary re-renders
-  const handlePinClick = useCallback(
-    (count: number, pinRequests: Request[], coordinates: [number, number]) => {
-      setSelectedPinCount(count);
-      setSelectedPinRequests(pinRequests);
-      setSelectedPinCoordinates(coordinates);
-      setShowPinModal(true);
-    },
-    []
-  );
-
   if (loading || checkingProfile) {
     return (
       <main className="min-h-screen bg-[#367230] flex items-center justify-center">
@@ -1318,7 +1351,15 @@ export default function MapPage() {
       {/* World Map Globe - shown when toggle is active and connection map is not active */}
       {isWorldMapActive && !isConnectionMapActive && (
         <div className="absolute inset-0 w-full h-full z-0 bg-black">
-          <WorldGlobe requests={requests} onPinClick={handlePinClick} />
+          <WorldGlobe
+            requests={requests}
+            onPinClick={(count, pinRequests, coordinates) => {
+              setSelectedPinCount(count);
+              setSelectedPinRequests(pinRequests);
+              setSelectedPinCoordinates(coordinates);
+              setShowPinModal(true);
+            }}
+          />
         </div>
       )}
 
