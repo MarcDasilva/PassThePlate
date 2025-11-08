@@ -6,13 +6,14 @@ export const ROUTES = {
   HOME: "/",
   SIGN_IN: "/signin",
   SIGN_UP: "/signup",
-  DASHBOARD: "/dashboard",
+  MAP: "/map",
+  ACCOUNT: "/account",
   AUTH_CALLBACK: "/auth/callback",
 } as const;
 
 /**
- * Helper function to get the dashboard redirect URL with optional next parameter
+ * Helper function to get the map redirect URL with optional next parameter
  */
-export function getDashboardRedirectUrl(origin: string, next?: string): string {
-  return `${origin}${next || ROUTES.DASHBOARD}`;
+export function getMapRedirectUrl(origin: string, next?: string): string {
+  return `${origin}${next || ROUTES.MAP}`;
 }

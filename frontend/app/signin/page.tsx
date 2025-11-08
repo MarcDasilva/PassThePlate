@@ -22,10 +22,10 @@ export default function SignInPage() {
   } = useAuth();
   const router = useRouter();
 
-  // Redirect to dashboard if user is already authenticated
+  // Redirect to map if user is already authenticated
   useEffect(() => {
     if (!authLoading && user) {
-      window.location.href = ROUTES.DASHBOARD;
+      window.location.href = ROUTES.MAP;
     }
   }, [user, authLoading]);
 
@@ -52,7 +52,7 @@ export default function SignInPage() {
         setError(error.message);
       } else {
         // Redirect immediately after successful signup
-        window.location.href = ROUTES.DASHBOARD;
+        window.location.href = ROUTES.MAP;
       }
     } else {
       setLoading(true);
@@ -63,7 +63,7 @@ export default function SignInPage() {
         setError(error.message);
       } else {
         // Redirect immediately after successful signin
-        window.location.href = ROUTES.DASHBOARD;
+        window.location.href = ROUTES.MAP;
       }
     }
   };

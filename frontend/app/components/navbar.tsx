@@ -3,17 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { ROUTES } from "@/app/lib/routes";
 
 export const navLinkClasses =
   "text-sm uppercase tracking-widest hover:text-red-600 transition-colors";
 
-const navItems = [
-  { label: "Home", href: "/#Home" },
-  { label: "Mission", href: "/#mission" },
-];
+const navItems = [{ label: "Home", href: "/#Home" }];
 
 export function Navbar() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white border-b border-black text-black">
@@ -32,21 +30,24 @@ export function Navbar() {
               {label}
             </Link>
           ))}
+          {user && (
+            <Link
+              href={ROUTES.MAP}
+              className="text-sm uppercase tracking-widest border border-black px-5 py-2 transition-colors hover:bg-black hover:text-white"
+            >
+              Map
+            </Link>
+          )}
           {user ? (
-            <>
-              <span className="text-sm uppercase tracking-widest">
-                {user.email}
-              </span>
-              <button
-                onClick={() => signOut()}
-                className="text-sm uppercase tracking-widest border border-black px-5 py-2 transition-colors hover:bg-black hover:text-white"
-              >
-                Sign out
-              </button>
-            </>
+            <Link
+              href={ROUTES.ACCOUNT}
+              className="text-sm uppercase tracking-widest border border-black px-5 py-2 transition-colors hover:bg-black hover:text-white"
+            >
+              Account
+            </Link>
           ) : (
             <Link
-              href="/signin"
+              href={ROUTES.SIGN_IN}
               className="text-sm uppercase tracking-widest border border-black px-5 py-2 transition-colors hover:bg-black hover:text-white"
             >
               Sign in

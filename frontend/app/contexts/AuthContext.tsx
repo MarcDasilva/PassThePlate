@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       options: {
         redirectTo: `${window.location.origin}${
           ROUTES.AUTH_CALLBACK
-        }?next=${encodeURIComponent(ROUTES.DASHBOARD)}`,
+        }?next=${encodeURIComponent(ROUTES.MAP)}`,
       },
     });
   };

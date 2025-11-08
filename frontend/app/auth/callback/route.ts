@@ -6,7 +6,7 @@ import { ROUTES } from "@/app/lib/routes";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? ROUTES.DASHBOARD;
+  const next = searchParams.get("next") ?? ROUTES.MAP;
 
   if (code) {
     const supabase = await createClient();
