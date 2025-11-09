@@ -37,19 +37,19 @@ const helpProjects = [
     id: "Share",
     title: "Share Your Food",
     description:
-      "Donate excess food items to help those in need in your community",
+      "Donate excess and expiring food items to help those in need in your community",
   },
   {
     id: "Save",
     title: "Save Lives",
     description:
-      "Your donations directly impact families facing food insecurity",
+      "Your donations directly impact families facing food insecurity, reducing food waste and increasing access to food for those in need",
   },
   {
     id: "Earn",
     title: "Earn Rewards",
     description:
-      "Get rewarded for your contributions with points and recognition",
+      "Get rewarded for your contributions with points and recognition for your efforts",
   },
 ];
 
@@ -212,7 +212,7 @@ export default function Home() {
               }`}
             >
               <Image
-                src="/frontimage.png"
+                src="/frontimage2.png"
                 alt="Front Image"
                 fill
                 style={{ objectFit: "cover" }}
@@ -331,19 +331,27 @@ export default function Home() {
       >
         <div className="container mx-auto">
           <h2
-            className={`text-6xl font-bold tracking-tighter mb-12 transition-all duration-1000 ease-out ${
+            className={`text-6xl font-bold tracking-tighter mb-12 transition-all duration-1000 ease-out relative inline-block ${
               isVisible.help
                 ? "translate-x-0 opacity-100"
                 : "translate-x-10 opacity-0"
             }`}
           >
             How <span className="font-cursive">WE-</span> Can Help
+            {isVisible.help && (
+              <span
+                className="absolute bottom-0 left-0 h-[2px] bg-black"
+                style={{
+                  animation: "underline 0.5s ease-out forwards",
+                }}
+              />
+            )}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {helpProjects.map(({ id, title, description }, index) => (
               <div
                 key={`help-${id}`}
-                className={`group transition-all duration-700 ease-out ${
+                className={`group transition-all duration-700 ease-out relative ${
                   isVisible.help
                     ? "translate-y-0 opacity-100"
                     : "translate-y-20 opacity-0"
@@ -352,19 +360,26 @@ export default function Home() {
                   transitionDelay: `${index * 150}ms`,
                 }}
               >
-                <div className="aspect-square bg-white mb-4 overflow-hidden rounded-sm">
-                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 group-hover:bg-green-300 transition-all duration-500 transform group-hover:scale-105">
-                    <span
-                      className={`${projectNumberClasses} transition-all duration-500 group-hover:scale-110`}
-                    >
+                <div
+                  className="aspect-square mb-4 overflow-hidden relative border-4 border-black transition-all duration-500 group-hover:border-8"
+                  style={{
+                    backgroundImage: `url(/number${index + 4}.png)`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  {/* Dark overlay to make image darker */}
+                  <div className="absolute inset-0 bg-black opacity-50"></div>
+                  <div className="w-full h-full flex items-center justify-center relative z-10">
+                    <span className={`${projectNumberClasses} text-white`}>
                       {id}
                     </span>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2 transition-transform duration-300 group-hover:translate-x-1">
+                <h3 className="text-xl font-bold mb-2 text-white transition-transform duration-300 group-hover:translate-x-1">
                   {title}
                 </h3>
-                <p className="text-neutral-400 transition-transform duration-300 group-hover:translate-x-1">
+                <p className="text-white transition-transform duration-300 group-hover:translate-x-1">
                   {description}
                 </p>
               </div>
@@ -377,51 +392,29 @@ export default function Home() {
       <section id="about" className="py-20 px-4 md:px-8 text-white">
         <div className="container mx-auto grid grid-cols-12 gap-8">
           <div className="col-span-12 md:col-span-5">
-            <h2 className="text-6xl font-bold tracking-tighter mb-8">ABOUT</h2>
+            <h2 className="text-6xl font-bold tracking-tighter mb-8">
+              -*ABOUT*-
+            </h2>
             <div className="aspect-[4-5] bg-neutral-100 relative mb-8 md:mb-0">
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 border-2 border-black"></div>
             </div>
           </div>
           <div className="col-span-12 md:col-span-7 md:pt-24">
             <p className="text-xl mb-6">
-              Swiss Design, also known as International Typographic Style,
-              emerged in Switzerland in the 1950s. It emphasizes cleanliness,
-              readability, and objectivity.
+              PassThePlate is an original Hackathon project @HackPrinceton25 by
+              a solo developer. It was built over a grueling 36 hours of coding,
+              design, and development, but the outcome was well worth it.
             </p>
             <p className="mb-6">
-              The style is characterized by sans-serif typography, grid systems,
-              asymmetrical layouts, and photography instead of illustrations.
-              Swiss Design pioneers believed that design should be clear,
-              objective, and functional.
-            </p>
-            <p className="mb-6">
-              Key figures include Josef Müller-Brockmann, Armin Hofmann, Emil
-              Ruder, and Max Bill. Their work continues to influence design
-              today.
+              The idea was founded by a previous endeavour to bring awareness to
+              food insecurity and food waste. Previously I started a local non
+              profit organization to help raise food donations for those in need
+              in the community, and this project is an extension of that
+              endeavour. It aims to help reduce food waste and increase access
+              to food for those in need. Saving lives and reducing food waste.
             </p>
             <div className="grid grid-cols-2 gap-4 mt-12">
-              <div>
-                <h3 className="text-sm uppercase tracking-widest mb-2">
-                  Principles
-                </h3>
-                <ul className="space-y-2">
-                  <li>Minimalism</li>
-                  <li>Grid-based layouts</li>
-                  <li>Sans-serif typography</li>
-                  <li>Objective photography</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-sm uppercase tracking-widest mb-2">
-                  Influences
-                </h3>
-                <ul className="space-y-2">
-                  <li>Bauhaus</li>
-                  <li>De Stijl</li>
-                  <li>Constructivism</li>
-                  <li>New Typography</li>
-                </ul>
-              </div>
+              <div></div>
             </div>
           </div>
         </div>
