@@ -25,9 +25,9 @@ const projects = [
   },
   {
     id: "58%",
-    title: "...Experienced on Barrier to Food Security",
+    title: "...Experienced a Barrier to Food Security",
     description:
-      "Preventing government and non-profit food services access, caused by transportation, identitification, and policy issues",
+      "Preventing government and non-profit food services access, caused by transportation, identitification, or policy issues",
     url: "https://apnorc.org/projects/more-than-half-of-americans-facing-food-challenges-struggle-to-get-support/?utm_source=chatgpt.com",
   },
 ];
