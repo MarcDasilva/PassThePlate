@@ -178,12 +178,7 @@ def predict_need_simple(
     donation_factor = max(0.1, 1 - (historical_donations / 20))
     population_factor = min(1, population / 10000)
     
-    need_score = (
-        food_insecurity_rate * 0.4 +
-        poverty_rate * 0.3 +
-        donation_factor * 0.2 +
-        population_factor * 0.1
-    ) * seasonal_multiplier
+need_score = ( food_insecurity_rate * 0.38 + poverty_rate * 0.33 + donation_factor * 0.21 + population_factor * 0.08 ) * seasonal_multiplier
     
     need_score = max(0, min(1, need_score))
     
