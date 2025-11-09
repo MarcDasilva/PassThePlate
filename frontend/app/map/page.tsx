@@ -232,22 +232,36 @@ export default function MapPage() {
       if (isWorldMapActive && !isConnectionMapActive) {
         setLoadingHighestNeed(true);
         try {
-          const mlApiUrl =
-            process.env.NEXT_PUBLIC_ML_API_URL || "http://18.209.63.122:8000";
-          const response = await fetch(`${mlApiUrl}/highest-need`);
+          // Use Next.js API route as proxy to avoid CORS and HTTP/HTTPS issues
+          const response = await fetch("/api/highest-need", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
           if (response.ok) {
             const data = await response.json();
+            console.log("Highest need location fetched:", data);
             setHighestNeedLocation(data);
           } else {
-            console.error("Failed to fetch highest need location");
+            const errorData = await response.json();
+            console.error(
+              "Failed to fetch highest need location:",
+              response.status,
+              errorData
+            );
             setHighestNeedLocation(null);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error fetching highest need location:", error);
           setHighestNeedLocation(null);
         } finally {
           setLoadingHighestNeed(false);
         }
+      } else {
+        // Reset when world map is not active
+        setHighestNeedLocation(null);
       }
     };
 
