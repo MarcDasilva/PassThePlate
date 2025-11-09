@@ -1019,6 +1019,12 @@ export default function MapPage() {
   const [selectedPinRequests, setSelectedPinRequests] = useState<Request[]>([]);
   const [maxPinCount, setMaxPinCount] = useState<number>(0);
   const [locationName, setLocationName] = useState<string | null>(null);
+  const [estimatedStats, setEstimatedStats] = useState<{
+    totalRequestsLast4Weeks: number;
+    donationGoalUSD: number;
+    peopleHelped: number;
+  } | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
   const [showDonationSlider, setShowDonationSlider] = useState(false);
   const [selectedPinCoordinates, setSelectedPinCoordinates] = useState<
     [number, number] | null
@@ -1456,22 +1462,52 @@ export default function MapPage() {
               setSelectedPinRequests(pinRequests);
               setSelectedPinCoordinates(coordinates);
               setMaxPinCount(maxCount);
+              setEstimatedStats(null);
+              setLoadingStats(true);
 
-              // Fetch location name first, then show modal
+              // Fetch location name and estimate statistics
               try {
-                const name = await getOrCreateLocationName(
-                  coordinates[0],
-                  coordinates[1]
-                );
-                // Extract country from location name (usually last part after comma)
-                const country = name.split(",").pop()?.trim() || name;
-                setLocationName(country);
+                const [nameResult, statsResult] = await Promise.all([
+                  getOrCreateLocationName(coordinates[0], coordinates[1]).catch(
+                    () => null
+                  ),
+                  fetch("/api/estimate-statistics", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      descriptions: pinRequests.map((r) => r.description || ""),
+                    }),
+                  })
+                    .then((res) => res.json())
+                    .catch(() => null),
+                ]);
+
+                // Extract country from location name
+                if (nameResult) {
+                  const country =
+                    nameResult.split(",").pop()?.trim() || nameResult;
+                  setLocationName(country);
+                }
+
+                // Set estimated statistics
+                if (statsResult && !statsResult.error) {
+                  setEstimatedStats({
+                    totalRequestsLast4Weeks:
+                      statsResult.totalRequestsLast4Weeks || 0,
+                    donationGoalUSD: statsResult.donationGoalUSD || 0,
+                    peopleHelped: statsResult.peopleHelped || 0,
+                  });
+                }
               } catch (error) {
-                console.error("Error fetching location name:", error);
+                console.error("Error fetching data:", error);
                 setLocationName(null);
+              } finally {
+                setLoadingStats(false);
               }
 
-              // Show modal after location name is fetched
+              // Show modal after data is fetched
               setShowPinModal(true);
             }}
           />
@@ -2332,7 +2368,13 @@ export default function MapPage() {
                         Total Requests
                       </div>
                       <div className="text-base md:text-xl font-bold text-gray-900">
-                        {selectedPinCount * 4}
+                        {loadingStats ? (
+                          <span className="text-gray-400">...</span>
+                        ) : estimatedStats ? (
+                          estimatedStats.totalRequestsLast4Weeks
+                        ) : (
+                          selectedPinCount * 4
+                        )}
                       </div>
                       <div className="text-[9px] md:text-xs text-gray-600 mt-0.5">
                         Last 4 weeks
@@ -2345,7 +2387,15 @@ export default function MapPage() {
                         Donation Goal
                       </div>
                       <div className="text-base md:text-xl font-bold text-gray-900">
-                        ${(selectedPinCount * 6 * 10).toLocaleString()}
+                        {loadingStats ? (
+                          <span className="text-gray-400">...</span>
+                        ) : estimatedStats ? (
+                          `$${Math.round(
+                            estimatedStats.donationGoalUSD
+                          ).toLocaleString()}`
+                        ) : (
+                          `$${(selectedPinCount * 6 * 10).toLocaleString()}`
+                        )}
                       </div>
                       <div className="text-[9px] md:text-xs text-gray-600 mt-0.5">
                         Target amount
@@ -2358,7 +2408,13 @@ export default function MapPage() {
                         People Helped
                       </div>
                       <div className="text-base md:text-xl font-bold text-gray-900">
-                        {selectedPinCount * 3}
+                        {loadingStats ? (
+                          <span className="text-gray-400">...</span>
+                        ) : estimatedStats ? (
+                          estimatedStats.peopleHelped
+                        ) : (
+                          selectedPinCount * 3
+                        )}
                       </div>
                       <div className="text-[9px] md:text-xs text-gray-600 mt-0.5">
                         Estimated impact
