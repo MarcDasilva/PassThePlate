@@ -1707,17 +1707,16 @@ export default function MapPage() {
                   <div className="text-base md:text-xl font-bold text-gray-900 capitalize">
                     {highestNeedLocation.season}
                   </div>
-                  <div className="text-[9px] md:text-xs text-gray-600 mt-0.5">
-                    Month {highestNeedLocation.month}
-                  </div>
+                  <div className="text-[9px] md:text-xs text-gray-600 mt-0.5"></div>
                 </div>
               </div>
             </div>
             <div className="p-6 border-t border-black">
               <div className="mb-4">
                 <p className="text-xs text-gray-600">
-                  The prediction is based on geographic factors, seasonal
-                  patterns, food insecurity rates, and historical data patterns.
+                  The prediction is based on a custom ML model that analyzes
+                  geographic factors, seasonal patterns, and food insecurity
+                  rates on historical data patterns.
                 </p>
               </div>
               <div className="flex gap-3">
