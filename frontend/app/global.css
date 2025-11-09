@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Cursive';
+  src: url('/cursive.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-cursive {
+  font-family: 'Cursive', cursive !important;
+  font-weight: normal !important;
+}
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-rgb: 255, 255, 255;

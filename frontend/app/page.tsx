@@ -10,19 +10,46 @@ const projectNumberClasses = "text-black text-8xl font-bold";
 
 const projects = [
   {
-    id: "01",
-    title: "Typography Project",
-    description: "Exploring grid systems and typographic hierarchy",
+    id: "1 in 6",
+    title: "...Children Experience Food Insecurity",
+    description:
+      "Causing 67% increase in diabetes, 40% increase in hypertension, and 30% increase in being overweight compared with food‑secure peers",
+    url: "https://proof.utoronto.ca/2025/new-data-on-household-food-insecurity-in-2024/",
   },
   {
-    id: "02",
-    title: "Poster Design",
-    description: "Minimalist approach to visual communication",
+    id: "30-40%",
+    title: "...of The US Food Supply is Thrown Away",
+    description:
+      "This consists of the retail and consumer level, wasting 133 Billion dollars, $161 Billion globally",
+    url: "https://pubmed.ncbi.nlm.nih.gov/31576509/",
   },
   {
-    id: "03",
-    title: "Brand Identity",
-    description: "Clean, systematic visual language for modern brands",
+    id: "58%",
+    title: "...Experienced on Barrier to Food Security",
+    description:
+      "Preventing government and non-profit food services access, caused by transportation, identitification, and policy issues",
+    url: "https://apnorc.org/projects/more-than-half-of-americans-facing-food-challenges-struggle-to-get-support/?utm_source=chatgpt.com",
+  },
+];
+
+const helpProjects = [
+  {
+    id: "Share",
+    title: "Share Your Food",
+    description:
+      "Donate excess food items to help those in need in your community",
+  },
+  {
+    id: "Save",
+    title: "Save Lives",
+    description:
+      "Your donations directly impact families facing food insecurity",
+  },
+  {
+    id: "Earn",
+    title: "Earn Rewards",
+    description:
+      "Get rewarded for your contributions with points and recognition",
   },
 ];
 
@@ -115,6 +142,8 @@ export default function Home() {
             >
               <span className="inline-block relative">
                 SHARE.
+                {/* Light green dot at top right */}
+                <span className="absolute -top-4 -right-4 w-16 h-16 bg-green-300 rounded-full" />
                 {underlinedWords.has("share") && (
                   <span
                     className="absolute bottom-0 left-0 h-[2px] bg-black"
@@ -129,7 +158,10 @@ export default function Home() {
                 )}
               </span>
               <br />
-              <span className="inline-block relative">
+              <span
+                className="inline-block relative font-cursive"
+                style={{ fontWeight: "normal" }}
+              >
                 SAVE.
                 {underlinedWords.has("save") && (
                   <span
@@ -205,23 +237,34 @@ export default function Home() {
       <section
         ref={missionRef}
         id="mission"
-        className="py-20 px-4 md:px-8 bg-[#244b20] text-white relative overflow-hidden"
+        className="py-20 px-4 md:px-8 bg-[#244b20] text-white relative"
       >
-        <div className="container mx-auto">
+        <div className="container mx-auto relative">
           <h2
-            className={`text-6xl font-bold tracking-tighter mb-12 transition-all duration-1000 ease-out ${
+            className={`text-6xl font-bold tracking-tighter mb-12 transition-all duration-1000 ease-out relative inline-block ${
               isVisible.mission
                 ? "translate-x-0 opacity-100"
                 : "-translate-x-10 opacity-0"
             }`}
           >
-            Mission
+            /Why <span className="font-cursive">-- Are We --</span> Needed/?
+            {isVisible.mission && (
+              <span
+                className="absolute bottom-0 left-0 h-[2px] bg-black"
+                style={{
+                  animation: "underline 0.5s ease-out forwards",
+                }}
+              />
+            )}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {projects.map(({ id, title, description }, index) => (
-              <div
+            {projects.map(({ id, title, description, url }, index) => (
+              <a
                 key={id}
-                className={`group transition-all duration-700 ease-out ${
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group transition-all duration-700 ease-out block relative ${
                   isVisible.mission
                     ? "translate-y-0 opacity-100"
                     : "translate-y-20 opacity-0"
@@ -230,32 +273,61 @@ export default function Home() {
                   transitionDelay: `${index * 150}ms`,
                 }}
               >
-                <div className="aspect-square bg-white mb-4 overflow-hidden rounded-sm">
-                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 group-hover:bg-red-600 transition-all duration-500 transform group-hover:scale-105">
-                    <span
-                      className={`${projectNumberClasses} transition-all duration-500 group-hover:scale-110`}
-                    >
+                {/* Green circle for number 3 (index 2) */}
+                {index === 2 && (
+                  <span className="absolute -top-3 -right-3 w-16 h-16 bg-green-300 rounded-full z-20" />
+                )}
+                <div
+                  className="aspect-square mb-4 overflow-hidden relative border-4 border-black transition-all duration-500 group-hover:border-8"
+                  style={{
+                    backgroundImage: `url(/number${index + 1}.jpg)`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  {/* Dark overlay to make image darker */}
+                  <div className="absolute inset-0 bg-black opacity-50"></div>
+                  <div className="w-full h-full flex items-center justify-center relative z-10">
+                    <span className={`${projectNumberClasses} text-white`}>
                       {id}
                     </span>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2 transition-transform duration-300 group-hover:translate-x-1">
+                <h3 className="text-xl font-bold mb-2 text-white transition-transform duration-300 group-hover:translate-x-1">
                   {title}
                 </h3>
-                <p className="text-neutral-400 transition-transform duration-300 group-hover:translate-x-1">
+                <p className="text-white transition-transform duration-300 group-hover:translate-x-1">
                   {description}
                 </p>
-              </div>
+              </a>
             ))}
           </div>
         </div>
       </section>
 
+      {/* We are all Neighbours - positioned between sections */}
+      <div className="relative -mt-8 md:-mt-12 mb-0">
+        <div
+          className={`absolute top-18 right-40 px-4 md:px-8 z-10 transition-all duration-1000 ease-out ${
+            isVisible.help
+              ? "translate-x-0 opacity-100"
+              : "translate-x-10 opacity-0"
+          }`}
+        >
+          <h3 className="text-4xl md:text-7xl font-bold tracking-tighter text-white">
+            _We (are all){" "}
+            <span className="font-cursive text-6xl md:text-8xl lg:text-10xl">
+              Neighbours*
+            </span>
+          </h3>
+        </div>
+      </div>
+
       {/* How We Can Help Section */}
       <section
         ref={helpRef}
         id="help"
-        className="py-20 px-4 md:px-8 bg-[#244b20] text-white"
+        className="pt-32 md:pt-20 pb-20 px-4 md:px-8 bg-[#244b20] text-white"
       >
         <div className="container mx-auto">
           <h2
@@ -265,10 +337,10 @@ export default function Home() {
                 : "translate-x-10 opacity-0"
             }`}
           >
-            How We Can Help
+            How <span className="font-cursive">WE-</span> Can Help
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {projects.map(({ id, title, description }, index) => (
+            {helpProjects.map(({ id, title, description }, index) => (
               <div
                 key={`help-${id}`}
                 className={`group transition-all duration-700 ease-out ${
@@ -281,7 +353,7 @@ export default function Home() {
                 }}
               >
                 <div className="aspect-square bg-white mb-4 overflow-hidden rounded-sm">
-                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 group-hover:bg-[#367230] transition-all duration-500 transform group-hover:scale-105">
+                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 group-hover:bg-green-300 transition-all duration-500 transform group-hover:scale-105">
                     <span
                       className={`${projectNumberClasses} transition-all duration-500 group-hover:scale-110`}
                     >
