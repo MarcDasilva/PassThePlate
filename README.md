@@ -1,4 +1,4 @@
-PassThePlate
+<img width="1023" height="748" alt="Screenshot 2025-11-09 at 3 56 18 AM" src="https://github.com/user-attachments/assets/43b66849-d5f8-4692-996e-5a063e976be8" />PassThePlate
 
 The idea was reinvented from a previous endeavour to bring awareness to food insecurity and food waste to my locak community. Previously, I started a local non profit organization to help raise food donations for those in need in the community, and this project is an extension of that endeavour. Pass The Plate aims to reduce food waste and increase access to food for those in need.
 
@@ -6,7 +6,10 @@ What makes us NEEDED: ⬇ Food insecurity affects millions, where malnutrition c
 
 PassThePlate Fixes this by: ⬆ Making food donation simple, allowing for frictionless engagement and rewards. ⬆ Providing people in need with local and easy ways to collect affordable food. Done in a stigmatized free manner similar to Facebook marketplace porch-pickup. ⬆Reduce food waste, allowing better spending opportunities for people in need. ⬆Using custom ML models to predict where donations are needed most in real time. ⬆ Collects data of food insecurity in secluded and tailored areas, providing valuable insights for further studies and research. ⬆Creating a community-driven platform that connects neighbours around the globe
 
-🛠️ How we built it
+🛠️ How I built it
+
+<img width="1023" height="748" alt="Screenshot 2025-11-09 at 3 56 18 AM" src="https://github.com/user-attachments/assets/2e7c88e7-bc79-4a35-9685-d1aea73b2445" />
+
 
 Built with a modular architecture connecting frontend visualization, ML predictions, AI processing, and payment systems.
 
