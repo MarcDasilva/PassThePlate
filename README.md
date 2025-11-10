@@ -1,4 +1,4 @@
-<img width="1023" height="748" alt="Screenshot 2025-11-09 at 3 56 18 AM" src="https://github.com/user-attachments/assets/43b66849-d5f8-4692-996e-5a063e976be8" />PassThePlate
+PassThePlate
 
 The idea was reinvented from a previous endeavour to bring awareness to food insecurity and food waste to my locak community. Previously, I started a local non profit organization to help raise food donations for those in need in the community, and this project is an extension of that endeavour. Pass The Plate aims to reduce food waste and increase access to food for those in need.
 
@@ -10,10 +10,7 @@ PassThePlate Fixes this by: ⬆ Making food donation simple, allowing for fricti
 
 <img width="1023" height="748" alt="Screenshot 2025-11-09 at 3 56 18 AM" src="https://github.com/user-attachments/assets/2e7c88e7-bc79-4a35-9685-d1aea73b2445" />
 
-
-Built with a modular architecture connecting frontend visualization, ML predictions, AI processing, and payment systems.
-
-🤖 AI & ML ML Backend (FastAPI on AWS EC2): XGBoost / scikit-learn for food necessity prediction pandas / numpy for data processing joblib for model serialization Custom model trained on seasonal patterns, food insecurity data, and historical donations
+AI & ML ML Backend (FastAPI on AWS EC2): XGBoost / scikit-learn for food necessity prediction pandas / numpy for data processing joblib for model serialization Custom model trained on seasonal patterns, food insecurity data, and historical donations
 
 ML Loss Function: need_score = ( food_insecurity_rate * 0.38 + poverty_rate * 0.33 + donation_factor * 0.21 + population_factor * 0.08 ) * seasonal_multiplier
 
